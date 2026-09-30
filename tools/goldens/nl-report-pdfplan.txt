@@ -1,0 +1,16 @@
+── pagina 1 ──
+titel:  Rittenregistratie
+meta:   Periode: Dit kwartaal · Gegenereerd: 01-04-2026
+kop:    Datum | Vertrek | Aankomst | Beginadres | Eindadres | Km-stand begin | Km-stand eind | Afstand (km) | Categorie | Doel/notitie | Klant/project | Voertuig
+rij:    02-03-2026 | 08:15 | 09:05 | Thuisstraat 1; Dorp | Kantoorlaan 5, Amsterdam | 50.000 | 50.030 | 30,0 | Zakelijk | Klantbezoek "Jansen" | Jansen BV | Bedrijfsauto
+rij:    03-03-2026 | 19:40 |  |  |  |  |  | 12,5 | Privé |  |  | 
+rij:    04-03-2026 | 07:50 | 08:20 | Thuisstraat 1 | Kantoorlaan 5 | 50.030 | 50.038 | 7,5 | Woon-werk |  |  | Bedrijfsauto
+── Samenvatting ──
+Aantal ritten: 3
+Totaal: 50,0 km
+Zakelijk: 30,0 km
+Woon-werk: 7,5 km
+Privé: 12,5 km
+Kilometervergoeding: € 6,90
+kolombreedtes: 60,35,45,120,120,50,50,45,60,80,50,55 (totaal 770)
+rijen per pagina: 20

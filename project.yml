@@ -1,0 +1,107 @@
+name: Kilometerregistratie
+options:
+  bundleIdPrefix: com.jeroenlamberts
+  deploymentTarget:
+    iOS: "17.0"
+  # Engels als development/fallback-taal (fase 5): de String Catalog
+  # (Resources/Localizable.xcstrings) heeft nl als brontaal in de code zelf
+  # — de letterlijke Text("...")-strings zijn Nederlands — maar dat is
+  # onafhankelijk van deze projectinstelling. Bestaande NL-gebruikers merken
+  # hier niets van: de catalog bevat een volledige nl-vertaling per sleutel.
+  developmentLanguage: en
+  createIntermediateGroups: true
+
+# Let op: deze xcodegen-installatie laadt geen standaard SettingPresets,
+# dus alle benodigde build settings staan hier expliciet (zelfde aanpak
+# als de andere projecten in deze repo).
+settings:
+  base:
+    SDKROOT: iphoneos
+    SWIFT_VERSION: "5.10"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    ALWAYS_SEARCH_USER_PATHS: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+  configs:
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+      SWIFT_OPTIMIZATION_LEVEL: -Onone
+      ENABLE_TESTABILITY: YES
+      ONLY_ACTIVE_ARCH: YES
+    Release:
+      SWIFT_OPTIMIZATION_LEVEL: -O
+
+targets:
+  Kilometerregistratie:
+    type: application
+    platform: iOS
+    sources:
+      - Kilometerregistratie
+    settings:
+      base:
+        PRODUCT_NAME: Kilometerregistratie
+        PRODUCT_BUNDLE_IDENTIFIER: com.jeroenlamberts.kilometerregistratie
+        MARKETING_VERSION: "1.1"
+        CURRENT_PROJECT_VERSION: "2"
+        TARGETED_DEVICE_FAMILY: "1"
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    info:
+      path: Kilometerregistratie/Info.plist
+      properties:
+        CFBundleDisplayName: Kilometerregistratie
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Talen die de app declareert te ondersteunen (fase 5). Nederlands
+        # eerst: dat is de bestaande gebruikersbasis.
+        CFBundleLocalizations:
+          - nl
+          - de
+          - en
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+        NSLocationWhenInUseUsageDescription: >-
+          Je locatie wordt gebruikt om tijdens een rit de route en afstand vast te
+          leggen. Alle gegevens blijven op je toestel.
+        NSLocationAlwaysAndWhenInUseUsageDescription: >-
+          Voor automatische ritregistratie moet de app ook op de achtergrond je
+          locatie kunnen gebruiken, zodat ritten vanzelf starten en stoppen.
+          Alle gegevens blijven op je toestel en worden nooit gedeeld.
+        NSMotionUsageDescription: >-
+          De app gebruikt bewegingsgegevens om te herkennen of je met de auto
+          rijdt, zodat lopen, fietsen of het openbaar vervoer geen automatische
+          rit starten. Deze gegevens verlaten je toestel nooit.
+        UIBackgroundModes:
+          - location
+
+  KilometerregistratieTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - KilometerregistratieTests
+    dependencies:
+      - target: Kilometerregistratie
+    settings:
+      base:
+        PRODUCT_NAME: KilometerregistratieTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.jeroenlamberts.kilometerregistratietests
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_TESTING_SEARCH_PATHS: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Kilometerregistratie.app/Kilometerregistratie"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+schemes:
+  Kilometerregistratie:
+    build:
+      targets:
+        Kilometerregistratie: all
+        KilometerregistratieTests: [test]
+    test:
+      targets:
+        - KilometerregistratieTests

@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetData>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Datum</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Vertrek</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Aankomst</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Beginadres</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Eindadres</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Km-stand begin</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Km-stand eind</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Afstand (km)</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Categorie</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Doel/notitie</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Klant/project</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Voertuig</t>
+</is>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">02-03-2026</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">08:15</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">09:05</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Thuisstraat 1; Dorp</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Kantoorlaan 5, Amsterdam</t>
+</is>
+</c>
+<c>
+<v>50000</v>
+</c>
+<c>
+<v>50030</v>
+</c>
+<c>
+<v>30.0</v>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Zakelijk</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Klantbezoek &quot;Jansen&quot;</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Jansen BV</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Bedrijfsauto</t>
+</is>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">03-03-2026</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">19:40</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c>
+<v>12.5</v>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Privé</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">04-03-2026</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">07:50</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">08:20</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Thuisstraat 1</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Kantoorlaan 5</t>
+</is>
+</c>
+<c>
+<v>50030</v>
+</c>
+<c>
+<v>50038</v>
+</c>
+<c>
+<v>7.5</v>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Woon-werk</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">
+</t>
+</is>
+</c>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Bedrijfsauto</t>
+</is>
+</c>
+</row>
+<row/>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Totaal aantal ritten</t>
+</is>
+</c>
+<c>
+<v>3</v>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Totaal km</t>
+</is>
+</c>
+<c>
+<v>50.0</v>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Zakelijk km</t>
+</is>
+</c>
+<c>
+<v>30.0</v>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Woon-werk km</t>
+</is>
+</c>
+<c>
+<v>7.5</v>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Privé km</t>
+</is>
+</c>
+<c>
+<v>12.5</v>
+</c>
+</row>
+<row>
+<c t="inlineStr">
+<is>
+<t xml:space="preserve">Kilometervergoeding (EUR)</t>
+</is>
+</c>
+<c>
+<v>6.90</v>
+</c>
+</row>
+</sheetData>
+</worksheet>

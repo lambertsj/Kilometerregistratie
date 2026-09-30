@@ -1,0 +1,21 @@
+── pagina 1 ──
+titel:  Fahrtenbuch
+meta:   Zeitraum: Laufendes Quartal · Erstellt am: 01.04.2026
+voertuig: Fahrzeug: Firmenwagen (M-AB 1234)
+kop:    Datum | Kilometerstand Abfahrt | Kilometerstand Ankunft | Gefahrene Kilometer | Art der Fahrt | Reiseziel (Ort) | Reiseziel (Straße) | Reisezweck | Aufgesuchter Geschäftspartner | Umweg | Fahrzeug
+rij:    02.03.2026 | 48.000 | 48.210 | 210,0 | Geschäftsfahrt | München | Leopoldstraße 12 | Projektbesprechung | Meier GmbH |  | Firmenwagen
+rij:    03.03.2026 | 48.210 | 48.235 | 25,0 | Wohnung/1. Tätigkeitsstätte |  |  |  |  |  | Firmenwagen
+rij:    04.03.2026 | 48.235 | 48.248 | 13,0 | Privatfahrt |  |  |  |  |  | Firmenwagen
+── Zusammenfassung (eigen pagina) ──
+Anzahl der Fahrten: 3
+Kilometerstand: 48.000 – 48.248
+Gefahrene Kilometer im Zeitraum: 248,0 km
+Summe der erfassten Fahrten: 248,0 km
+Geschäftsfahrten: 210,0 km
+Fahrten Wohnung/erste Tätigkeitsstätte: 25,0 km
+Privatfahrten: 13,0 km
+Differenz zum Kilometerstand: 0,0 km
+── Legende ──
+Wohnung/1. Tätigkeitsstätte = Fahrt zwischen Wohnung und erster Tätigkeitsstätte
+kolombreedtes: 52,55,55,48,78,85,95,100,100,55,46 (totaal 769)
+rijen per pagina: 19

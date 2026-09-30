@@ -1,0 +1,11 @@
+# Claude Code
+.claude/
+
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
