@@ -6,6 +6,13 @@ geen account en geen analytics.
 
 De interface is Nederlands. Er is ook een Duitse regio-set (Fahrtenbuch-export) aanwezig.
 
+## BasisApps
+
+Deze app is onderdeel van [BasisApps](https://basis-apps.jlamberts86.workers.dev), het initiatief voor
+eerlijke apps die gewoon gratis horen te zijn: geen abonnementen of in-app aankopen, geen advertenties,
+geen tracking, gegevens zoveel mogelijk lokaal en transparant. In de App Store heet de app
+**Basis: Kilometerregistratie** (Duitse listing: **Basis: Fahrtenbuch GPS**).
+
 ## Functies
 
 - **Automatische ritdetectie**: ritten starten en stoppen vanzelf, met bewegingsgegevens (Core Motion)
