@@ -43,7 +43,7 @@ targets:
       base:
         PRODUCT_NAME: Kilometerregistratie
         PRODUCT_BUNDLE_IDENTIFIER: com.jeroenlamberts.kilometerregistratie
-        MARKETING_VERSION: "1.1"
+        MARKETING_VERSION: "1.2"
         CURRENT_PROJECT_VERSION: "2"
         TARGETED_DEVICE_FAMILY: "1"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
