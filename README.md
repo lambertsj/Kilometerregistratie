@@ -1,5 +1,7 @@
 # Kilometerregistratie
 
+[![Basis Certified](https://basisapps.nl/badge.svg)](https://basisapps.nl)
+
 Native iOS-app voor kilometerregistratie en rittenadministratie, gebouwd met SwiftUI en SwiftData.
 Offline-first en privacy-first: alle gegevens blijven lokaal op het toestel. Er is geen backend,
 geen account en geen analytics.
