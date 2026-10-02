@@ -10,7 +10,7 @@ De interface is Nederlands. Er is ook een Duitse regio-set (Fahrtenbuch-export) 
 
 ## BasisApps
 
-Deze app is onderdeel van [BasisApps](https://basis-apps.jlamberts86.workers.dev), het initiatief voor
+Deze app is onderdeel van [BasisApps](https://basisapps.nl), het initiatief voor
 eerlijke apps die gewoon gratis horen te zijn: geen abonnementen of in-app aankopen, geen advertenties,
 geen tracking, gegevens zoveel mogelijk lokaal en transparant. In de App Store heet de app
 **Basis: Kilometerregistratie** (Duitse listing: **Basis: Fahrtenbuch GPS**).
