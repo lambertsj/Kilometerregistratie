@@ -131,7 +131,7 @@
 		0E49848B33EF4D4D411CEBB4 /* VehicleRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleRepository.swift; sourceTree = "<group>"; };
 		141483574B6F14851CA4906E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		14BC0ABADBE6517F9A0CE509 /* AppSchemaV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSchemaV1.swift; sourceTree = "<group>"; };
-		1F911C13D4E50CE126403EA0 /* Kilometerregistratie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kilometerregistratie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1F911C13D4E50CE126403EA0 /* Kilometerregistratie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kilometerregistratie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		213C6CE45C65372C440F0DC3 /* PDFReportRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReportRenderer.swift; sourceTree = "<group>"; };
 		218C490A5C1BFAC4818FD49D /* TripRevision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripRevision.swift; sourceTree = "<group>"; };
 		220F3F5A90F79DC57CB5D295 /* MileageStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MileageStatistics.swift; sourceTree = "<group>"; };
@@ -499,10 +499,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					0E08D3159A8EFB969CD914F0 = {
+						DevelopmentTeam = XYLKXHWCCC;
 						ProvisioningStyle = Automatic;
 					};
 					23EA7C4F937664052D67D422 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = XYLKXHWCCC;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -689,10 +690,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = XYLKXHWCCC;
 				INFOPLIST_FILE = Kilometerregistratie/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jeroenlamberts.kilometerregistratie;
 				PRODUCT_NAME = Kilometerregistratie;
@@ -711,11 +709,7 @@
 				DEVELOPMENT_TEAM = XYLKXHWCCC;
 				ENABLE_TESTING_SEARCH_PATHS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jeroenlamberts.kilometerregistratietests;
 				PRODUCT_NAME = KilometerregistratieTests;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kilometerregistratie.app/Kilometerregistratie";
@@ -729,11 +723,7 @@
 				DEVELOPMENT_TEAM = XYLKXHWCCC;
 				ENABLE_TESTING_SEARCH_PATHS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jeroenlamberts.kilometerregistratietests;
 				PRODUCT_NAME = KilometerregistratieTests;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kilometerregistratie.app/Kilometerregistratie";
@@ -766,10 +756,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = XYLKXHWCCC;
 				INFOPLIST_FILE = Kilometerregistratie/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jeroenlamberts.kilometerregistratie;
 				PRODUCT_NAME = Kilometerregistratie;
