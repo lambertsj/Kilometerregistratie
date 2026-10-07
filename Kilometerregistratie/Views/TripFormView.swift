@@ -102,9 +102,9 @@ struct TripFormView: View {
                 }
 
                 Section("Route") {
-                    TextField("Beginadres", text: $startAddress)
+                    TextField("Beginadres of naam uit contacten", text: $startAddress)
                         .textContentType(.fullStreetAddress)
-                    TextField("Eindadres", text: $endAddress)
+                    TextField("Eindadres of naam uit contacten", text: $endAddress)
                         .textContentType(.fullStreetAddress)
                     LabeledContent("Afstand") {
                         TextField("0", value: $distanceKm, format: .number.precision(.fractionLength(0...1)))

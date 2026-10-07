@@ -703,6 +703,22 @@
         }
       }
     },
+    "Beginadres of naam uit contacten" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startadresse oder Name aus Kontakten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start address or contact name"
+          }
+        }
+      }
+    },
     "Beginstand" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1287,6 +1303,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "End address"
+          }
+        }
+      }
+    },
+    "Eindadres of naam uit contacten" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zieladresse oder Name aus Kontakten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End address or contact name"
           }
         }
       }
