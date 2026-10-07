@@ -102,10 +102,11 @@ struct TripFormView: View {
                 }
 
                 Section("Route") {
+                    // Bewust geen `.textContentType(.fullStreetAddress)`: dat laat
+                    // iOS bij de eerste tik contactadressen laden, waardoor de
+                    // eerste tik op een echt toestel geen cursor zet.
                     TextField("Beginadres", text: $startAddress)
-                        .textContentType(.fullStreetAddress)
                     TextField("Eindadres", text: $endAddress)
-                        .textContentType(.fullStreetAddress)
                     LabeledContent("Afstand") {
                         TextField("0", value: $distanceKm, format: .number.precision(.fractionLength(0...1)))
                             .keyboardType(.decimalPad)
