@@ -130,4 +130,57 @@ final class LocationTrackingServiceTests: XCTestCase {
 
         XCTAssertEqual(service.recordingSource, .manual, "handmatige opname blijft doorlopen tot STOP")
     }
+
+    // MARK: - Geïnjecteerde providers
+
+    func testServiceUsesInjectedLocationProviderForRecording() async throws {
+        let context = try makeContext()
+        let provider = FakeLocationProvider()
+        let service = LocationTrackingService(locationProvider: provider)
+        service.configure(context: context)
+
+        let trip = Trip(startDate: .now)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .manual)
+
+        XCTAssertTrue(provider.isUpdating)
+        XCTAssertTrue(provider.backgroundAllowed)
+
+        await service.stopRecording(endDate: .now)
+        XCTAssertFalse(provider.isUpdating)
+        XCTAssertFalse(provider.backgroundAllowed)
+    }
+
+    func testRevokedPermissionDuringRecordingShowsIssueAndStops() async throws {
+        let context = try makeContext()
+        let provider = FakeLocationProvider()
+        let service = LocationTrackingService(locationProvider: provider)
+        service.configure(context: context)
+
+        let trip = Trip(startDate: .now, isAutomaticallyRecorded: true)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .automatic)
+
+        provider.changeAuthorization(to: .denied)
+        for _ in 0..<20 { await Task.yield() }
+
+        XCTAssertEqual(service.currentIssue, .permissionRevokedDuringRecording)
+        XCTAssertNil(service.recordingSource)
+    }
+
+    func testLocationsFromProviderReachTheRoute() async throws {
+        let context = try makeContext()
+        let provider = FakeLocationProvider()
+        let service = LocationTrackingService(locationProvider: provider)
+        service.configure(context: context)
+
+        let start = Date.now
+        let trip = Trip(startDate: start)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .manual)
+
+        provider.deliver([location(offset: 5, from: start, latitude: 52.0)])
+
+        XCTAssertNotNil(trip.routeData, "eerste punt wordt direct tussentijds weggeschreven")
+    }
 }

@@ -1,6 +1,5 @@
 import Foundation
 import CoreLocation
-import CoreMotion
 import SwiftData
 import Observation
 
@@ -29,17 +28,18 @@ import Observation
 ///   significant-change-monitor blijft actief.
 @Observable
 @MainActor
-final class LocationTrackingService: NSObject {
+final class LocationTrackingService {
     enum RecordingSource: Equatable {
         case manual
         case automatic
     }
 
-    private let manager = CLLocationManager()
-    private let motionActivityManager = CMMotionActivityManager()
+    private let locationProvider: LocationProviding
+    private let motionProvider: MotionProviding
+    private let time: TimeSource
     private var modelContext: ModelContext?
     private var detector = TripDetector()
-    private let geocoder = GeocodingService()
+    private let geocoder: AddressResolving
 
     /// Meest recente CoreMotion-classificatie; gebruikt door
     /// `MotionActivityGate` om te voorkomen dat OV of fietsen (die toevallig
@@ -105,7 +105,7 @@ final class LocationTrackingService: NSObject {
     /// binnen inkomende samples kan beslissen).
     private var lastSampleAt: Date?
     private var recordingStartedAt: Date?
-    private var watchdogTask: Task<Void, Never>?
+    private var watchdogTimer: TimerHandle?
 
     /// Zoveel seconden (op sample-tijd) tussen twee tussentijdse schrijfacties
     /// van de route. Zonder dit staat de route alleen in het geheugen en weet
@@ -114,14 +114,19 @@ final class LocationTrackingService: NSObject {
     private static let routePersistInterval: TimeInterval = 60
     private var lastRoutePersistAt: Date?
 
-    override init() {
-        super.init()
-        manager.delegate = self
-        manager.activityType = .automotiveNavigation
-        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        manager.distanceFilter = 25
-        manager.pausesLocationUpdatesAutomatically = true
-        authorizationStatus = manager.authorizationStatus
+    init(
+        locationProvider: LocationProviding? = nil,
+        motionProvider: MotionProviding? = nil,
+        time: TimeSource? = nil,
+        geocoder: AddressResolving? = nil
+    ) {
+        let locationProvider = locationProvider ?? CoreLocationProvider()
+        self.locationProvider = locationProvider
+        self.motionProvider = motionProvider ?? CoreMotionProvider()
+        self.time = time ?? SystemTimeSource()
+        self.geocoder = geocoder ?? GeocodingService()
+        locationProvider.delegate = self
+        authorizationStatus = locationProvider.authorizationStatus
     }
 
     func configure(context: ModelContext) {
@@ -144,7 +149,7 @@ final class LocationTrackingService: NSObject {
 
     /// Voor automatische detectie op de achtergrond is "Altijd" nodig.
     func requestAlwaysAuthorization() {
-        manager.requestAlwaysAuthorization()
+        locationProvider.requestAlwaysAuthorization()
     }
 
     // MARK: - Instellingen toepassen
@@ -158,15 +163,15 @@ final class LocationTrackingService: NSObject {
         detectionEnabled = wantsDetection
 
         if wantsDetection {
-            manager.startMonitoringSignificantLocationChanges()
+            locationProvider.startMonitoringSignificantLocationChanges()
             // Continue updates starten pas zodra er rijsnelheid gezien wordt.
             startMotionUpdatesIfAvailable()
         } else {
-            manager.stopMonitoringSignificantLocationChanges()
+            locationProvider.stopMonitoringSignificantLocationChanges()
             stopMotionUpdates()
             detector.reset()
             if recordingSource == .automatic {
-                Task { await stopRecording(endDate: .now) }
+                Task { await stopRecording(endDate: time.now) }
             }
         }
     }
@@ -177,16 +182,13 @@ final class LocationTrackingService: NSObject {
     private func applyAccuracyPreference(_ preference: LocationAccuracyPreference) {
         switch preference {
         case .batterySaver:
-            manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-            manager.distanceFilter = 50
+            locationProvider.apply(accuracy: kCLLocationAccuracyHundredMeters, distanceFilter: 50)
             maxHorizontalAccuracy = 120
         case .balanced:
-            manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-            manager.distanceFilter = 25
+            locationProvider.apply(accuracy: kCLLocationAccuracyNearestTenMeters, distanceFilter: 25)
             maxHorizontalAccuracy = GPSPointFilter.defaultMaxHorizontalAccuracy
         case .precise:
-            manager.desiredAccuracy = kCLLocationAccuracyBest
-            manager.distanceFilter = 10
+            locationProvider.apply(accuracy: kCLLocationAccuracyBest, distanceFilter: 10)
             maxHorizontalAccuracy = 30
         }
     }
@@ -194,18 +196,14 @@ final class LocationTrackingService: NSObject {
     // MARK: - CoreMotion
 
     private func startMotionUpdatesIfAvailable() {
-        guard CMMotionActivityManager.isActivityAvailable() else { return }
-        motionActivityManager.startActivityUpdates(to: .main) { [weak self] activity in
-            guard let self, let activity else { return }
-            self.latestActivity = MotionActivityGate.ActivitySample(
-                automotive: activity.automotive,
-                confidence: MotionActivityGate.ActivitySample.Confidence(activity.confidence)
-            )
+        guard motionProvider.isAvailable else { return }
+        motionProvider.start { [weak self] sample in
+            self?.latestActivity = sample
         }
     }
 
     private func stopMotionUpdates() {
-        motionActivityManager.stopActivityUpdates()
+        motionProvider.stop()
         latestActivity = nil
     }
 
@@ -220,7 +218,7 @@ final class LocationTrackingService: NSObject {
             startRecording(trip: trip, source: .manual)
         } else if authorizationStatus == .notDetermined {
             awaitingAuthorizationTrip = trip
-            manager.requestWhenInUseAuthorization()
+            locationProvider.requestWhenInUseAuthorization()
         }
     }
 
@@ -319,7 +317,8 @@ final class LocationTrackingService: NSObject {
     /// Beslist via `HangingTripRecovery` of hervatten nog zinvol is, of dat
     /// de rit direct afgesloten moet worden omdat er te veel tijd zonder
     /// teken van leven is verstreken.
-    func resumeIfNeeded(context: ModelContext, now: Date = .now) async {
+    func resumeIfNeeded(context: ModelContext, now: Date? = nil) async {
+        let now = now ?? time.now
         guard recordingTrip == nil else { return }
         guard let trip = try? TripRepository(context: context).activeTrip() else { return }
 
@@ -355,7 +354,7 @@ final class LocationTrackingService: NSObject {
         routeStartDate = trip.startDate
         liveDistanceKm = 0
         recordingStartedAt = trip.startDate
-        lastSampleAt = .now
+        lastSampleAt = time.now
         lastAcceptedSample = nil
         lastRoutePersistAt = nil
         currentIssue = nil
@@ -373,17 +372,16 @@ final class LocationTrackingService: NSObject {
         // Achtergrond-updates zijn nodig om de rit door te meten als het
         // toestel in de zak/houder zit; de blauwe indicator maakt dit
         // transparant voor de gebruiker.
-        manager.allowsBackgroundLocationUpdates = true
-        manager.showsBackgroundLocationIndicator = true
-        manager.startUpdatingLocation()
+        locationProvider.setBackgroundUpdates(allowed: true, showsIndicator: true)
+        locationProvider.startUpdatingLocation()
         startWatchdog()
     }
 
     private func stopContinuousUpdates() {
-        manager.stopUpdatingLocation()
-        manager.allowsBackgroundLocationUpdates = false
-        watchdogTask?.cancel()
-        watchdogTask = nil
+        locationProvider.stopUpdatingLocation()
+        locationProvider.setBackgroundUpdates(allowed: false, showsIndicator: false)
+        watchdogTimer?.cancel()
+        watchdogTimer = nil
     }
 
     /// Onafhankelijk van binnenkomende locatiesamples: sluit een opname
@@ -392,20 +390,23 @@ final class LocationTrackingService: NSObject {
     /// doorloopt. `TripDetector` alleen kan dit niet, want die beslist enkel
     /// op basis van samples die binnenkomen.
     private func startWatchdog() {
-        watchdogTask?.cancel()
-        watchdogTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(30))
-                guard !Task.isCancelled else { return }
-                await self?.checkWatchdog()
-            }
+        watchdogTimer?.cancel()
+        watchdogTimer = time.every(30) { [weak self] in
+            await self?.checkWatchdog()
         }
+    }
+
+    /// De app is weer actief (voorgrond). Een opgeschorte app voert geen
+    /// timers uit; sluit een verlopen opname direct af.
+    func appDidBecomeActive() async {
+        await checkWatchdog()
     }
 
     /// Draait ook zodra de app weer actief wordt: een opgeschorte app voert
     /// de timer hierboven niet uit, dus zonder deze aanroep blijft een rit
     /// open staan totdat de timer toevallig weer loopt.
-    func checkWatchdog(now: Date = .now) async {
+    func checkWatchdog(now: Date? = nil) async {
+        let now = now ?? time.now
         guard recordingTrip != nil,
               let startedAt = recordingStartedAt,
               let lastSample = lastSampleAt else { return }
@@ -423,10 +424,10 @@ final class LocationTrackingService: NSObject {
     // MARK: - Samples verwerken
 
     fileprivate func handleAuthorizationChange() {
-        authorizationStatus = manager.authorizationStatus
+        authorizationStatus = locationProvider.authorizationStatus
         if !canUseLocation, recordingTrip != nil {
             currentIssue = .permissionRevokedDuringRecording
-            Task { await stopRecording(endDate: .now) }
+            Task { await stopRecording(endDate: time.now) }
         }
         if let trip = awaitingAuthorizationTrip, authorizationStatus != .notDetermined {
             awaitingAuthorizationTrip = nil
@@ -581,39 +582,22 @@ final class LocationTrackingService: NSObject {
     }
 }
 
-extension LocationTrackingService: CLLocationManagerDelegate {
-    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        Task { @MainActor in
-            handleAuthorizationChange()
-        }
+extension LocationTrackingService: LocationProvidingDelegate {
+    func locationProvider(didUpdate locations: [CLLocation]) {
+        handle(locations: locations)
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        Task { @MainActor in
-            handle(locations: locations)
-        }
+    func locationProviderDidChangeAuthorization() {
+        handleAuthorizationChange()
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationProviderDidFail(_ error: Error) {
         // Tijdelijke GPS-uitval is normaal (tunnel, parkeergarage); de
         // detector en route-opname herstellen zodra er weer samples komen.
         // Alleen het systeemwide uitschakelen van locatievoorzieningen tonen
         // we aan de gebruiker, want dat registreert helemaal niets meer
         // totdat de gebruiker het zelf weer aanzet.
-        guard (error as? CLError)?.code == .denied, !CLLocationManager.locationServicesEnabled() else { return }
-        Task { @MainActor in
-            self.currentIssue = .locationServicesDisabled
-        }
-    }
-}
-
-private extension MotionActivityGate.ActivitySample.Confidence {
-    init(_ confidence: CMMotionActivityConfidence) {
-        switch confidence {
-        case .low: self = .low
-        case .medium: self = .medium
-        case .high: self = .high
-        @unknown default: self = .low
-        }
+        guard (error as? CLError)?.code == .denied, !locationProvider.locationServicesEnabled else { return }
+        currentIssue = .locationServicesDisabled
     }
 }

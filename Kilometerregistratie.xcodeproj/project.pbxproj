@@ -92,6 +92,12 @@
 		F7A3F5E828202B8EBCBB6BB7 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A86DDB74B05C830A4B9FE5 /* HomeView.swift */; };
 		F9BD40EFC03C91918E57B4C2 /* GPSPointFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E41FC29915F4157AF0B661D /* GPSPointFilter.swift */; };
 		FC6DB4D3DA01591173E5B30E /* ReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7C7872A33EBDF2DC983B72 /* ReportTests.swift */; };
+		C42EA6FDDFCE4278BE558249 /* FakeLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC90DE4DDDD740B48E589DD8 /* FakeLocationProvider.swift */; };
+		A95D3C31A3DA4126AE93BE6E /* TimeSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A513F2E2B66465EA98FC39F /* TimeSource.swift */; };
+		79AA65307998491F960E5113 /* LocationProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E53E9752AC94267947905C0 /* LocationProviding.swift */; };
+		F836EF51DFA64077A8AA438B /* CoreLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3BB96A5FCC64F08AE21D7BF /* CoreLocationProvider.swift */; };
+		5BD3FFF87BBA43F5BCB3CBFC /* MotionProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8CFE261EFC14EBA9BC9941C /* MotionProviding.swift */; };
+		8F23A95A01974919A105170A /* AddressResolving.swift in Sources */ = {isa = PBXBuildFile; fileRef = 493CC303630B4696A9A110F6 /* AddressResolving.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -193,6 +199,12 @@
 		FA2FE3DAA3C9B664731AD886 /* Trip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trip.swift; sourceTree = "<group>"; };
 		FAE63AB8C6D22677A6E8ADA3 /* TripRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripRecorder.swift; sourceTree = "<group>"; };
 		FECEF8178105D84A7D0F82EA /* AppSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSchema.swift; sourceTree = "<group>"; };
+		AC90DE4DDDD740B48E589DD8 /* FakeLocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FakeLocationProvider.swift; path = Simulation/FakeLocationProvider.swift; sourceTree = "<group>"; };
+		0A513F2E2B66465EA98FC39F /* TimeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TimeSource.swift; path = Platform/TimeSource.swift; sourceTree = "<group>"; };
+		1E53E9752AC94267947905C0 /* LocationProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LocationProviding.swift; path = Platform/LocationProviding.swift; sourceTree = "<group>"; };
+		C3BB96A5FCC64F08AE21D7BF /* CoreLocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoreLocationProvider.swift; path = Platform/CoreLocationProvider.swift; sourceTree = "<group>"; };
+		B8CFE261EFC14EBA9BC9941C /* MotionProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MotionProviding.swift; path = Platform/MotionProviding.swift; sourceTree = "<group>"; };
+		493CC303630B4696A9A110F6 /* AddressResolving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AddressResolving.swift; path = Platform/AddressResolving.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -247,6 +259,11 @@
 				213C6CE45C65372C440F0DC3 /* PDFReportRenderer.swift */,
 				5EBB91F006C422433F9BC581 /* RouteDistanceService.swift */,
 				FAE63AB8C6D22677A6E8ADA3 /* TripRecorder.swift */,
+				493CC303630B4696A9A110F6 /* AddressResolving.swift */,
+				B8CFE261EFC14EBA9BC9941C /* MotionProviding.swift */,
+				C3BB96A5FCC64F08AE21D7BF /* CoreLocationProvider.swift */,
+				1E53E9752AC94267947905C0 /* LocationProviding.swift */,
+				0A513F2E2B66465EA98FC39F /* TimeSource.swift */,
 				F15A8966073045E74C4D0F99 /* TripWriteService.swift */,
 			);
 			path = Services;
@@ -280,6 +297,7 @@
 				452E5DDA0E1F78F8E78C4BF2 /* TripDetectorTests.swift */,
 				F0203F05FE2A25DEDA7C239D /* TripMergeTests.swift */,
 				E8D2CF0A51B047B63851ED6D /* TripRecorderTests.swift */,
+				AC90DE4DDDD740B48E589DD8 /* FakeLocationProvider.swift */,
 				C8D2E3F4A5B6079889706B5C /* LocationTrackingServiceTests.swift */,
 			);
 			path = KilometerregistratieTests;
@@ -540,6 +558,11 @@
 				840470622DA29566C18F4F72 /* TripMerge.swift in Sources */,
 				1A7DC72AB36D2E411C270935 /* TripQuickClassifyView.swift in Sources */,
 				DA01A5A4061B176073E03F46 /* TripRecorder.swift in Sources */,
+				8F23A95A01974919A105170A /* AddressResolving.swift in Sources */,
+				5BD3FFF87BBA43F5BCB3CBFC /* MotionProviding.swift in Sources */,
+				F836EF51DFA64077A8AA438B /* CoreLocationProvider.swift in Sources */,
+				79AA65307998491F960E5113 /* LocationProviding.swift in Sources */,
+				A95D3C31A3DA4126AE93BE6E /* TimeSource.swift in Sources */,
 				8F9CF4A4754832F243E6CF63 /* TripRepository.swift in Sources */,
 				7A2C913B79183701289DC73E /* TripRevision.swift in Sources */,
 				2643EAF443FAC7252376ACFA /* TripWriteService.swift in Sources */,
@@ -569,6 +592,7 @@
 				BB1FA729417C08A69F59F4FA /* TripDetectorTests.swift in Sources */,
 				439986354CC2D8C6FC83F996 /* TripMergeTests.swift in Sources */,
 				A1F70DF53B6BC4279D9133A0 /* TripRecorderTests.swift in Sources */,
+				C42EA6FDDFCE4278BE558249 /* FakeLocationProvider.swift in Sources */,
 				B7C1D2E3F4A5968778695A4B /* LocationTrackingServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

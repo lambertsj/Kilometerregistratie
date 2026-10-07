@@ -39,7 +39,7 @@ struct KilometerregistratieApp: App {
                     // iOS kan de app tijdens een rit hebben opgeschort, waarbij
                     // de watchdog-timer stilstaat. Controleer direct bij terugkeer.
                     guard phase == .active else { return }
-                    Task { await locationService.checkWatchdog() }
+                    Task { await locationService.appDidBecomeActive() }
                 }
         }
         .modelContainer(container)
