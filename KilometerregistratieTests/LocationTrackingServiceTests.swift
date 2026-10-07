@@ -1,5 +1,6 @@
 import XCTest
 import SwiftData
+import CoreLocation
 @testable import Kilometerregistratie
 
 @MainActor
@@ -65,5 +66,54 @@ final class LocationTrackingServiceTests: XCTestCase {
         await service.checkWatchdog(now: .now.addingTimeInterval(30))
 
         XCTAssertNil(trip.endDate)
+    }
+
+    private func location(offset: TimeInterval, from start: Date, latitude: Double) -> CLLocation {
+        CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: 5.0),
+            altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5,
+            course: 0, speed: 10, timestamp: start.addingTimeInterval(offset)
+        )
+    }
+
+    /// Als de app tijdens een rit gekilld wordt, moet de database nog weten
+    /// wanneer het laatste teken van leven was; anders valt herstel terug op
+    /// de ritstart en gaat de route verloren.
+    func testRoutePersistedWhileTripIsStillRecording() async throws {
+        let context = try makeContext()
+        let service = LocationTrackingService()
+        service.configure(context: context)
+
+        let start = Date.now
+        let trip = Trip(startDate: start, isAutomaticallyRecorded: true)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .automatic)
+
+        service.handle(locations: [
+            location(offset: 5, from: start, latitude: 52.0000),
+            location(offset: 70, from: start, latitude: 52.0100),
+        ])
+
+        XCTAssertNil(trip.endDate, "rit loopt nog")
+        let data = try XCTUnwrap(trip.routeData)
+        let points = try RoutePolyline.decode(data)
+        XCTAssertEqual(points.last?.offset ?? 0, 70, accuracy: 0.001)
+    }
+
+    func testRouteIsNotWrittenForEverySample() async throws {
+        let context = try makeContext()
+        let service = LocationTrackingService()
+        service.configure(context: context)
+
+        let start = Date.now
+        let trip = Trip(startDate: start, isAutomaticallyRecorded: true)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .automatic)
+
+        service.handle(locations: [location(offset: 5, from: start, latitude: 52.0000)])
+        service.handle(locations: [location(offset: 15, from: start, latitude: 52.0010)])
+
+        let points = try RoutePolyline.decode(try XCTUnwrap(trip.routeData))
+        XCTAssertEqual(points.count, 1, "tweede sample komt binnen de interval en wacht op de volgende schrijfbeurt")
     }
 }

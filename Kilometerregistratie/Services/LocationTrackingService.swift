@@ -107,6 +107,13 @@ final class LocationTrackingService: NSObject {
     private var recordingStartedAt: Date?
     private var watchdogTask: Task<Void, Never>?
 
+    /// Zoveel seconden (op sample-tijd) tussen twee tussentijdse schrijfacties
+    /// van de route. Zonder dit staat de route alleen in het geheugen en weet
+    /// `resumeIfNeeded` na een kill niet meer wanneer de rit voor het laatst
+    /// leefde.
+    private static let routePersistInterval: TimeInterval = 60
+    private var lastRoutePersistAt: Date?
+
     override init() {
         super.init()
         manager.delegate = self
@@ -232,6 +239,7 @@ final class LocationTrackingService: NSObject {
         lastSampleAt = nil
         recordingStartedAt = nil
         lastAcceptedSample = nil
+        lastRoutePersistAt = nil
 
         guard let context = modelContext else { return }
         let writer = TripWriteService(context: context)
@@ -302,6 +310,7 @@ final class LocationTrackingService: NSObject {
         lastSampleAt = nil
         recordingStartedAt = nil
         lastAcceptedSample = nil
+        lastRoutePersistAt = nil
     }
 
     /// Hervat een opname na een app-herstart, voor een rit die nog "actief"
@@ -328,6 +337,7 @@ final class LocationTrackingService: NSObject {
             recordingStartedAt = trip.startDate
             lastSampleAt = now
             lastAcceptedSample = existingPoints.last.map { Self.sample(from: $0, routeStartDate: trip.startDate) }
+            lastRoutePersistAt = nil
             if trip.isAutomaticallyRecorded {
                 detector.reset()
             }
@@ -347,6 +357,7 @@ final class LocationTrackingService: NSObject {
         recordingStartedAt = trip.startDate
         lastSampleAt = .now
         lastAcceptedSample = nil
+        lastRoutePersistAt = nil
         currentIssue = nil
         beginContinuousUpdates()
     }
@@ -420,7 +431,7 @@ final class LocationTrackingService: NSObject {
         }
     }
 
-    fileprivate func handle(locations: [CLLocation]) {
+    func handle(locations: [CLLocation]) {
         currentIssue = nil
         for location in locations {
             let event: TripDetector.Event
@@ -520,6 +531,7 @@ final class LocationTrackingService: NSObject {
         recordingStartedAt = trip.startDate
         lastSampleAt = location.timestamp
         lastAcceptedSample = existingPoints.last.map { Self.sample(from: $0, routeStartDate: trip.startDate) }
+        lastRoutePersistAt = nil
         beginContinuousUpdates()
         appendRoutePoint(from: location)
     }
@@ -550,6 +562,17 @@ final class LocationTrackingService: NSObject {
             ) / 1000
         }
         routePoints.append(point)
+        persistRouteIfDue(at: location.timestamp)
+    }
+
+    /// Schrijft de route tussentijds weg, hooguit eens per interval. Dit is
+    /// het opbouwen van een lopende rit en geeft dus geen audit-revisie.
+    private func persistRouteIfDue(at timestamp: Date) {
+        if let last = lastRoutePersistAt, timestamp.timeIntervalSince(last) < Self.routePersistInterval { return }
+        guard let trip = recordingTrip, let context = modelContext,
+              let data = try? RoutePolyline.encode(routePoints) else { return }
+        lastRoutePersistAt = timestamp
+        _ = try? TripWriteService(context: context).update(trip) { $0.routeData = data }
     }
 }
 
