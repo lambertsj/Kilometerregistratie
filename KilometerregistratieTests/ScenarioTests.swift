@@ -64,7 +64,7 @@ final class ScenarioTests: XCTestCase {
     // opname blijft doorlopen (geen watchdog-stop op stilte). Leunt op: A1.
     func testManualTripStaysOpenAndRecordingContinuesDuringLongStop() async throws {
         let s = try ScenarioRunner(mode: .manual)
-        try s.userTapsStart()
+        try await s.userTapsStart()
         await s.drive(meters: 3_000)
         await s.stand(for: 20 * 60)            // lang bij een klant
 
@@ -153,7 +153,7 @@ final class ScenarioTests: XCTestCase {
     // naast en na STOP staat er niets open. Leunt op: A1.
     func testHybridManualTripIsNotDuplicatedByDetection() async throws {
         let s = try ScenarioRunner(mode: .hybrid)
-        try s.userTapsStart()
+        try await s.userTapsStart()
         await s.drive(meters: 8_000)
         try await s.userTapsStop()
         await s.stand(for: 10 * 60)
@@ -203,6 +203,24 @@ final class ScenarioTests: XCTestCase {
         await s.appRelaunch()
 
         s.assertNoOpenAutomaticTrip()
+        try s.assertInvariants()
+    }
+
+    // Geval 12b (gevonden door de fuzz-test, seed 26): toestemming ingetrokken
+    // en de app wordt binnen 30 minuten weer geopend. Zonder toestemming kan de
+    // opname niet hervat worden; de rit moet dan afgesloten worden op het
+    // laatste teken van leven in plaats van voor altijd open te blijven.
+    func testRelaunchWithoutPermissionWithinResumeWindowFinalizesTrip() async throws {
+        let s = try ScenarioRunner(mode: .automatic)
+        await s.drive(meters: 5_000)
+        s.appKill()                             // eerst gekild: de service kan zelf niets meer afsluiten
+        await s.revokePermission()              // toestemming verdwijnt terwijl de app niet draait
+        await s.wait(for: 5 * 60)               // korter dan de hervat-grens van 30 min
+        await s.appRelaunch()
+        await s.wait(for: 5 * 60)
+
+        XCTAssertEqual(s.openTrips.count, 0, "rit blijft niet open staan zonder toestemming")
+        XCTAssertNotNil(s.trips.first?.endDate)
         try s.assertInvariants()
     }
 

@@ -336,7 +336,14 @@ final class LocationTrackingService {
 
         switch HangingTripRecovery.decide(lastKnownActivity: lastKnownActivity, now: now) {
         case .resume:
-            guard canUseLocation else { return }
+            guard canUseLocation else {
+                // Zonder toestemming kan de opname niet hervat worden. Sluit de
+                // rit af op het laatste teken van leven, in plaats van hem voor
+                // altijd open te laten staan, en laat de gebruiker weten waarom.
+                _ = try? TripWriteService(context: context).update(trip) { $0.endDate = lastKnownActivity }
+                currentIssue = .permissionRevokedDuringRecording
+                return
+            }
             recordingTrip = trip
             recordingSource = trip.isAutomaticallyRecorded ? .automatic : .manual
             routePoints = existingPoints

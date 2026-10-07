@@ -23,6 +23,7 @@ extension ScenarioRunner {
         let slack = TimeInterval(stopAfterMinutes * 60) + 60 + 30 + 1
         for trip in closed where trip.isAutomaticallyRecorded {
             let end = try XCTUnwrap(trip.endDate)
+            if userStopDates.contains(end) { continue }
             let lastMovement = truthMovementTimes.last { $0 <= end } ?? trip.startDate
             XCTAssertLessThanOrEqual(
                 end.timeIntervalSince(lastMovement), slack,
@@ -31,7 +32,8 @@ extension ScenarioRunner {
             )
         }
 
-        // 5/6. Nooit meer afstand dan er is gereden (gaten tellen niet mee).
+        // 5. Nooit meer afstand geregistreerd dan er totaal is verplaatst. Dat een gat
+        //    bij automatische detectie niet meetelt, staat in de gat-scenario's zelf.
         let registeredMeters = all.reduce(0) { $0 + $1.distanceKm * 1000 }
         XCTAssertLessThanOrEqual(
             registeredMeters, truthDrivenMeters * 1.03 + 100,

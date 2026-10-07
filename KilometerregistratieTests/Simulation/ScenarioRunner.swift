@@ -38,7 +38,11 @@ final class ScenarioRunner {
 
     // Waarheid voor invarianten
     private(set) var truthMovementTimes: [Date] = []
+    /// Totaal verplaatst (rijden plus onzichtbare sprongen); bovengrens voor wat geregistreerd mag zijn.
     private(set) var truthDrivenMeters = 0.0
+    /// Momenten waarop de gebruiker op STOP tikte; een einddatum die daarmee
+    /// samenvalt is een keuze van de gebruiker en geen automatisch einde.
+    private(set) var userStopDates: Set<Date> = []
 
     init(mode: ScenarioMode, stopAfterMinutes: Int = 3, ios params: IOSParameters = IOSParameters()) throws {
         self.mode = mode
@@ -106,6 +110,9 @@ final class ScenarioRunner {
     func jump(meters: Double, over seconds: TimeInterval) async {
         await advance(by: seconds)
         latitude += meters / metersPerDegreeLatitude
+        // Echt verplaatst, alleen niet gezien: een lopende opname mag die
+        // afstand meetellen (bv. een handmatige rit door een tunnel).
+        truthDrivenMeters += meters
     }
 
     /// Tijd laten lopen zonder fixes.
@@ -158,7 +165,8 @@ final class ScenarioRunner {
     // MARK: - Gebruiker
 
     /// Gedraagt zich als `HomeView.toggleRecording` bij START.
-    func userTapsStart() throws {
+    func userTapsStart() async throws {
+        await userOpensApp()
         let recorder = TripRecorder(now: { [clock] in clock.now })
         if let trip = try recorder.start(context: context, vehicle: nil) {
             service.beginRouteRecording(for: trip)
@@ -167,9 +175,21 @@ final class ScenarioRunner {
 
     /// Gedraagt zich als `HomeView.toggleRecording` bij STOP.
     func userTapsStop() async throws {
+        await userOpensApp()
+        userStopDates.insert(clock.now)
         await service.stopRecording(endDate: clock.now)
         try TripRecorder(now: { [clock] in clock.now }).stop(context: context)
         await settle()
+    }
+
+    /// Een gebruiker kan alleen tikken in een draaiende app: na een kill of
+    /// opschorten opent hij die eerst.
+    private func userOpensApp() async {
+        switch ios.appState {
+        case .terminated: await appRelaunch()
+        case .suspended, .background: await appResume()
+        case .foreground: break
+        }
     }
 
     // MARK: - Intern
