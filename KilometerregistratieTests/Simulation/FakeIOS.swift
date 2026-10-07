@@ -14,6 +14,9 @@ struct IOSParameters {
     var wakesWhenUpdatesResume = true
     /// A9: toestemming intrekken beëindigt de app.
     var revokingPermissionTerminatesApp = true
+    /// A11: bij het wakker worden vuren verlopen timers vóór het eerste sample.
+    /// Onbekend; uit = het sample komt eerst en alleen de detector kan het gat zien.
+    var timersResumeBeforeFirstSample = true
 }
 
 enum AppState: Equatable {
@@ -120,9 +123,14 @@ final class FakeIOS {
             guard wakesByUpdates || wakesBySignificant else { return }
             if wakesBySignificant { significantAnchor = position }
             appState = .background
-            clock.timersEnabled = true
-            await clock.resumeTimers()
-            deliver(fix)
+            if params.timersResumeBeforeFirstSample {
+                await clock.resumeTimers()
+                deliver(fix)
+            } else {
+                clock.timersEnabled = true
+                deliver(fix)
+                await clock.resumeTimers()
+            }
 
         case .foreground, .background:
             if location.isUpdating {
