@@ -24,11 +24,17 @@ struct CategoryBadge: View {
     let category: TripCategory
 
     var body: some View {
-        Label(category.displayName, systemImage: category.iconName)
+        HStack(spacing: 4) {
+            Image(systemName: category.iconName)
+                .accessibilityHidden(true)
+            Text(category.displayName)
+        }
             .font(.caption2.weight(.semibold))
             .foregroundStyle(category.color)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(category.color.opacity(0.14), in: Capsule())
+            .lineLimit(1)
+            .fixedSize()
     }
 }

@@ -67,7 +67,7 @@ struct TripListView: View {
                     }
                 }
             }
-            .navigationTitle("Ritten")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -149,6 +149,13 @@ struct TripRow: View {
         return "\(from) → \(to)"
     }
 
+    /// Voertuig en klant, op één regel onder de categorie.
+    private var metaText: String {
+        [trip.vehicle?.name, trip.clientLabel.isEmpty ? nil : trip.clientLabel]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: trip.category.iconName)
@@ -164,18 +171,12 @@ struct TripRow: View {
                 Text(trip.startDate.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                HStack(spacing: 6) {
-                    CategoryBadge(category: trip.category)
-                    if let vehicle = trip.vehicle {
-                        Text(vehicle.name)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    if !trip.clientLabel.isEmpty {
-                        Text(trip.clientLabel)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                CategoryBadge(category: trip.category)
+                if !metaText.isEmpty {
+                    Text(metaText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
