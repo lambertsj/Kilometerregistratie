@@ -118,3 +118,28 @@ struct PressableStyle: ButtonStyle {
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
+
+// MARK: - Haptiek
+
+/// Haptische feedback bij de belangrijkste handelingen. Bewust rechtstreeks
+/// via UIKit en niet via `.sensoryFeedback`: een view die direct na de
+/// handeling verdwijnt (formulier dat sluit) speelt zijn feedback anders niet
+/// meer af, en feedback hoort bij de tik van de gebruiker, niet bij een
+/// latere databasewijziging.
+@MainActor
+enum Haptics {
+    /// Rit gestart met de START-knop.
+    static func tripStarted() {
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    }
+
+    /// Rit gestopt met de STOP-knop.
+    static func tripStopped() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    /// Rit succesvol opgeslagen.
+    static func tripSaved() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+}
