@@ -62,4 +62,18 @@ final class TripRecorderTests: XCTestCase {
         try TripRecorder().start(context: context, vehicle: nil)
         XCTAssertEqual(try TripRepository(context: context).trips().count, 1)
     }
+
+    func testRecorderUsesInjectedClock() throws {
+        let context = try makeContext()
+        let t0 = Date(timeIntervalSince1970: 1_700_000_000)
+        var current = t0
+        let recorder = TripRecorder(now: { current })
+
+        let trip = try XCTUnwrap(try recorder.start(context: context, vehicle: nil))
+        XCTAssertEqual(trip.startDate, t0)
+
+        current = t0.addingTimeInterval(900)
+        let stopped = try recorder.stop(context: context)
+        XCTAssertEqual(stopped?.endDate, t0.addingTimeInterval(900))
+    }
 }

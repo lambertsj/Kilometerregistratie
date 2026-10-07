@@ -8,13 +8,16 @@ import SwiftData
 /// lopende rit een app-herstart overleven.
 @MainActor
 struct TripRecorder {
+    /// Tijd van START/STOP; scenario-tests geven een virtuele klok mee.
+    var now: () -> Date = { .now }
+
     /// Start een handmatige rit, tenzij er al een actieve rit is (handmatig
     /// of automatisch). Geeft de nieuwe rit terug, of nil als er niets
     /// gestart is.
     @discardableResult
     func start(context: ModelContext, vehicle: Vehicle?) throws -> Trip? {
         guard try TripRepository(context: context).activeTrip() == nil else { return nil }
-        let trip = Trip(startDate: .now, vehicle: vehicle)
+        let trip = Trip(startDate: now(), vehicle: vehicle)
         try TripWriteService(context: context).create(trip)
         return trip
     }
@@ -26,7 +29,8 @@ struct TripRecorder {
         guard let trip = try TripRepository(context: context).activeTrip() else { return nil }
         // De rit is hier nog niet afgesloten, dus dit telt als het opbouwen
         // van de registratie en niet als een wijziging achteraf.
-        try TripWriteService(context: context).update(trip) { $0.endDate = .now }
+        let end = now()
+        try TripWriteService(context: context).update(trip) { $0.endDate = end }
         return trip
     }
 

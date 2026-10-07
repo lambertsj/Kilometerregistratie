@@ -101,6 +101,10 @@
 		8E23D2ABDCE44F40AFF55126 /* VirtualClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB567E3E981B4982A1A10758 /* VirtualClock.swift */; };
 		CDFA21045E6746329731EF5C /* FakeProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C760241D40D40FC8FAA3D97 /* FakeProviders.swift */; };
 		E76F53378FBA4A34A2E97506 /* VirtualClockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804288EA74394F38AA66CABB /* VirtualClockTests.swift */; };
+		F9D8FAC57C8247C3A7BB53F8 /* FakeIOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50737923A4674AD6B49F73CB /* FakeIOS.swift */; };
+		F0407B4574F04046957BCACC /* ScenarioRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E8BBD9943A74FA892315B0B /* ScenarioRunner.swift */; };
+		D0AE21068F9D4DFFA13480F0 /* ScenarioInvariants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CEF3500C57542BC9F2648CF /* ScenarioInvariants.swift */; };
+		25AE1799482C4AB5A5F3C711 /* ScenarioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A34EEEFF3CB44CF820F1F10 /* ScenarioTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -211,6 +215,10 @@
 		DB567E3E981B4982A1A10758 /* VirtualClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VirtualClock.swift; path = Simulation/VirtualClock.swift; sourceTree = "<group>"; };
 		9C760241D40D40FC8FAA3D97 /* FakeProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FakeProviders.swift; path = Simulation/FakeProviders.swift; sourceTree = "<group>"; };
 		804288EA74394F38AA66CABB /* VirtualClockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VirtualClockTests.swift; path = VirtualClockTests.swift; sourceTree = "<group>"; };
+		50737923A4674AD6B49F73CB /* FakeIOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FakeIOS.swift; path = Simulation/FakeIOS.swift; sourceTree = "<group>"; };
+		2E8BBD9943A74FA892315B0B /* ScenarioRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ScenarioRunner.swift; path = Simulation/ScenarioRunner.swift; sourceTree = "<group>"; };
+		8CEF3500C57542BC9F2648CF /* ScenarioInvariants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ScenarioInvariants.swift; path = Simulation/ScenarioInvariants.swift; sourceTree = "<group>"; };
+		3A34EEEFF3CB44CF820F1F10 /* ScenarioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ScenarioTests.swift; path = ScenarioTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -303,6 +311,10 @@
 				452E5DDA0E1F78F8E78C4BF2 /* TripDetectorTests.swift */,
 				F0203F05FE2A25DEDA7C239D /* TripMergeTests.swift */,
 				E8D2CF0A51B047B63851ED6D /* TripRecorderTests.swift */,
+				3A34EEEFF3CB44CF820F1F10 /* ScenarioTests.swift */,
+				8CEF3500C57542BC9F2648CF /* ScenarioInvariants.swift */,
+				2E8BBD9943A74FA892315B0B /* ScenarioRunner.swift */,
+				50737923A4674AD6B49F73CB /* FakeIOS.swift */,
 				804288EA74394F38AA66CABB /* VirtualClockTests.swift */,
 				9C760241D40D40FC8FAA3D97 /* FakeProviders.swift */,
 				DB567E3E981B4982A1A10758 /* VirtualClock.swift */,
@@ -601,6 +613,10 @@
 				BB1FA729417C08A69F59F4FA /* TripDetectorTests.swift in Sources */,
 				439986354CC2D8C6FC83F996 /* TripMergeTests.swift in Sources */,
 				A1F70DF53B6BC4279D9133A0 /* TripRecorderTests.swift in Sources */,
+				25AE1799482C4AB5A5F3C711 /* ScenarioTests.swift in Sources */,
+				D0AE21068F9D4DFFA13480F0 /* ScenarioInvariants.swift in Sources */,
+				F0407B4574F04046957BCACC /* ScenarioRunner.swift in Sources */,
+				F9D8FAC57C8247C3A7BB53F8 /* FakeIOS.swift in Sources */,
 				E76F53378FBA4A34A2E97506 /* VirtualClockTests.swift in Sources */,
 				CDFA21045E6746329731EF5C /* FakeProviders.swift in Sources */,
 				8E23D2ABDCE44F40AFF55126 /* VirtualClock.swift in Sources */,

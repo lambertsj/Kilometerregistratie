@@ -114,6 +114,13 @@ final class LocationTrackingService {
     private static let routePersistInterval: TimeInterval = 60
     private var lastRoutePersistAt: Date?
 
+    /// Laatste moment waarop de rit aantoonbaar bezig was: het laatste sample,
+    /// of na een hervatting het laatste punt dat vóór de kill is opgeslagen.
+    /// Dit bepaalt de einddatum als de opname stilvalt. `lastSampleAt` blijft
+    /// de levendigheid voor de watchdog (na een hervatting: het heropenmoment,
+    /// zodat het eerste sample nog een kans krijgt).
+    private var lastActivityAt: Date?
+
     init(
         locationProvider: LocationProviding? = nil,
         motionProvider: MotionProviding? = nil,
@@ -238,6 +245,7 @@ final class LocationTrackingService {
         recordingStartedAt = nil
         lastAcceptedSample = nil
         lastRoutePersistAt = nil
+        lastActivityAt = nil
 
         guard let context = modelContext else { return }
         let writer = TripWriteService(context: context)
@@ -309,6 +317,7 @@ final class LocationTrackingService {
         recordingStartedAt = nil
         lastAcceptedSample = nil
         lastRoutePersistAt = nil
+        lastActivityAt = nil
     }
 
     /// Hervat een opname na een app-herstart, voor een rit die nog "actief"
@@ -337,6 +346,7 @@ final class LocationTrackingService {
             lastSampleAt = now
             lastAcceptedSample = existingPoints.last.map { Self.sample(from: $0, routeStartDate: trip.startDate) }
             lastRoutePersistAt = nil
+            lastActivityAt = lastKnownActivity
             if trip.isAutomaticallyRecorded {
                 detector.reset()
             }
@@ -357,6 +367,7 @@ final class LocationTrackingService {
         lastSampleAt = time.now
         lastAcceptedSample = nil
         lastRoutePersistAt = nil
+        lastActivityAt = time.now
         currentIssue = nil
         beginContinuousUpdates()
     }
@@ -418,7 +429,7 @@ final class LocationTrackingService {
             ignoreGPSSilence: recordingSource == .manual
         ) else { return }
         detector.reset()
-        await stopRecording(endDate: lastSample)
+        await stopRecording(endDate: lastActivityAt ?? lastSample)
     }
 
     // MARK: - Samples verwerken
@@ -463,6 +474,7 @@ final class LocationTrackingService {
             }
             if recordingTrip != nil, !endsAutomaticTrip {
                 lastSampleAt = location.timestamp
+                lastActivityAt = location.timestamp
                 appendRoutePoint(from: location)
             }
             guard detectionEnabled else { continue }
@@ -538,6 +550,7 @@ final class LocationTrackingService {
         lastSampleAt = location.timestamp
         lastAcceptedSample = existingPoints.last.map { Self.sample(from: $0, routeStartDate: trip.startDate) }
         lastRoutePersistAt = nil
+        lastActivityAt = location.timestamp
         beginContinuousUpdates()
         appendRoutePoint(from: location)
     }
