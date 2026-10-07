@@ -228,7 +228,6 @@ struct HomeView: View {
                 ? String(localized: "Start rit", comment: "Toegankelijkheidslabel: rit starten")
                 : String(localized: "Stop rit", comment: "Toegankelijkheidslabel: rit stoppen")
             )
-            .sensoryFeedback(.impact, trigger: activeTrip != nil)
 
             if locationDenied {
                 Label(
@@ -248,12 +247,14 @@ struct HomeView: View {
 
     private func toggleRecording() {
         if activeTrip == nil {
+            Haptics.tripStarted()
             attempt {
                 if let trip = try recorder.start(context: context, vehicle: vehicles.first) {
                     locationService.beginRouteRecording(for: trip)
                 }
             }
         } else {
+            Haptics.tripStopped()
             // Eerst de GPS-opname afronden (route, afstand, adressen),
             // daarna de rit afsluiten en het afrondformulier tonen.
             Task {

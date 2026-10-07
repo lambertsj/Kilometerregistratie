@@ -364,6 +364,7 @@ struct TripFormView: View {
                 try writer.create(trip)
             }
             learnClassification()
+            Haptics.tripSaved()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
