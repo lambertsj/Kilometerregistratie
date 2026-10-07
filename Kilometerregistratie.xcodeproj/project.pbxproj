@@ -98,6 +98,9 @@
 		F836EF51DFA64077A8AA438B /* CoreLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3BB96A5FCC64F08AE21D7BF /* CoreLocationProvider.swift */; };
 		5BD3FFF87BBA43F5BCB3CBFC /* MotionProviding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8CFE261EFC14EBA9BC9941C /* MotionProviding.swift */; };
 		8F23A95A01974919A105170A /* AddressResolving.swift in Sources */ = {isa = PBXBuildFile; fileRef = 493CC303630B4696A9A110F6 /* AddressResolving.swift */; };
+		8E23D2ABDCE44F40AFF55126 /* VirtualClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB567E3E981B4982A1A10758 /* VirtualClock.swift */; };
+		CDFA21045E6746329731EF5C /* FakeProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C760241D40D40FC8FAA3D97 /* FakeProviders.swift */; };
+		E76F53378FBA4A34A2E97506 /* VirtualClockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804288EA74394F38AA66CABB /* VirtualClockTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,6 +208,9 @@
 		C3BB96A5FCC64F08AE21D7BF /* CoreLocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoreLocationProvider.swift; path = Platform/CoreLocationProvider.swift; sourceTree = "<group>"; };
 		B8CFE261EFC14EBA9BC9941C /* MotionProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MotionProviding.swift; path = Platform/MotionProviding.swift; sourceTree = "<group>"; };
 		493CC303630B4696A9A110F6 /* AddressResolving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AddressResolving.swift; path = Platform/AddressResolving.swift; sourceTree = "<group>"; };
+		DB567E3E981B4982A1A10758 /* VirtualClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VirtualClock.swift; path = Simulation/VirtualClock.swift; sourceTree = "<group>"; };
+		9C760241D40D40FC8FAA3D97 /* FakeProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FakeProviders.swift; path = Simulation/FakeProviders.swift; sourceTree = "<group>"; };
+		804288EA74394F38AA66CABB /* VirtualClockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VirtualClockTests.swift; path = VirtualClockTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -297,6 +303,9 @@
 				452E5DDA0E1F78F8E78C4BF2 /* TripDetectorTests.swift */,
 				F0203F05FE2A25DEDA7C239D /* TripMergeTests.swift */,
 				E8D2CF0A51B047B63851ED6D /* TripRecorderTests.swift */,
+				804288EA74394F38AA66CABB /* VirtualClockTests.swift */,
+				9C760241D40D40FC8FAA3D97 /* FakeProviders.swift */,
+				DB567E3E981B4982A1A10758 /* VirtualClock.swift */,
 				AC90DE4DDDD740B48E589DD8 /* FakeLocationProvider.swift */,
 				C8D2E3F4A5B6079889706B5C /* LocationTrackingServiceTests.swift */,
 			);
@@ -592,6 +601,9 @@
 				BB1FA729417C08A69F59F4FA /* TripDetectorTests.swift in Sources */,
 				439986354CC2D8C6FC83F996 /* TripMergeTests.swift in Sources */,
 				A1F70DF53B6BC4279D9133A0 /* TripRecorderTests.swift in Sources */,
+				E76F53378FBA4A34A2E97506 /* VirtualClockTests.swift in Sources */,
+				CDFA21045E6746329731EF5C /* FakeProviders.swift in Sources */,
+				8E23D2ABDCE44F40AFF55126 /* VirtualClock.swift in Sources */,
 				C42EA6FDDFCE4278BE558249 /* FakeLocationProvider.swift in Sources */,
 				B7C1D2E3F4A5968778695A4B /* LocationTrackingServiceTests.swift in Sources */,
 			);

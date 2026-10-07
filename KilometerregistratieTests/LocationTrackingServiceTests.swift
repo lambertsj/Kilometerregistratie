@@ -183,4 +183,26 @@ final class LocationTrackingServiceTests: XCTestCase {
 
         XCTAssertNotNil(trip.routeData, "eerste punt wordt direct tussentijds weggeschreven")
     }
+
+    func testWatchdogRunsOnInjectedClockAndClosesTripAfterSilence() async throws {
+        let context = try makeContext()
+        let clock = VirtualClock(start: Date(timeIntervalSince1970: 1_700_000_000))
+        let service = LocationTrackingService(
+            locationProvider: FakeLocationProvider(),
+            motionProvider: FakeMotionProvider(),
+            time: clock,
+            geocoder: FakeAddressResolver()
+        )
+        service.configure(context: context)
+
+        let trip = Trip(startDate: clock.now, isAutomaticallyRecorded: true)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .automatic)
+
+        // Standaard drempel 180 s + 60 s marge, timer elke 30 s.
+        await clock.advance(to: clock.now.addingTimeInterval(300))
+
+        XCTAssertNotNil(trip.endDate)
+        XCTAssertNil(service.recordingSource)
+    }
 }
