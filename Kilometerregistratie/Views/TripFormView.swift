@@ -107,12 +107,16 @@ struct TripFormView: View {
                     TextField("Eindadres of naam uit contacten", text: $endAddress)
                         .textContentType(.fullStreetAddress)
                     LabeledContent("Afstand") {
-                        TextField("0", value: $distanceKm, format: .number.precision(.fractionLength(0...1)))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .accessibilityLabel("Afstand in kilometers")
-                        Text("km")
-                            .foregroundStyle(.secondary)
+                        // Eén HStack: LabeledContent stapelt twee losse views
+                        // anders onder elkaar, met "km" los van het getal.
+                        HStack(spacing: 4) {
+                            TextField("0", value: $distanceKm, format: .number.precision(.fractionLength(0...1)))
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .accessibilityLabel("Afstand in kilometers")
+                            Text("km")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     if canCalculateDistance {
                         Button {

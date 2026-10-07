@@ -46,6 +46,13 @@ targets:
         MARKETING_VERSION: "1.3"
         CURRENT_PROJECT_VERSION: "4"
         TARGETED_DEVICE_FAMILY: "1"
+        # Signing-team (het project-brede DEVELOPMENT_TEAM hierboven blijft leeg).
+        DEVELOPMENT_TEAM: XYLKXHWCCC
+        # Alleen iPhone: geen Mac Catalyst, "Designed for iPad" op Mac of Vision.
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -90,6 +97,7 @@ targets:
       base:
         PRODUCT_NAME: KilometerregistratieTests
         PRODUCT_BUNDLE_IDENTIFIER: com.jeroenlamberts.kilometerregistratietests
+        DEVELOPMENT_TEAM: XYLKXHWCCC
         GENERATE_INFOPLIST_FILE: YES
         ENABLE_TESTING_SEARCH_PATHS: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"
