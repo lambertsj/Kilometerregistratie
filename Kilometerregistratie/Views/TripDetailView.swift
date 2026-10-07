@@ -104,6 +104,7 @@ struct TripDetailView: View {
                 )
             }
         }
+            .themedList()
         .navigationTitle(trip.startDate.formatted(date: .abbreviated, time: .omitted))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -156,15 +157,15 @@ struct TripDetailView: View {
                 MapPolyline(coordinates: routePoints.map {
                     CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
                 })
-                .stroke(.blue, lineWidth: 4)
+                .stroke(Theme.accent, lineWidth: 5)
             }
             if let start = startCoordinate {
                 Marker("Vertrek", systemImage: "flag.fill", coordinate: start)
-                    .tint(.green)
+                    .tint(Theme.ok)
             }
             if let end = endCoordinate {
                 Marker("Aankomst", systemImage: "flag.checkered", coordinate: end)
-                    .tint(.red)
+                    .tint(Theme.danger)
             }
         }
     }

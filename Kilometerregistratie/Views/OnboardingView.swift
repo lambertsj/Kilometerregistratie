@@ -62,6 +62,7 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity, minHeight: 48)
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
 
@@ -71,6 +72,7 @@ struct OnboardingView: View {
                     .padding(.bottom, 8)
             }
         }
+        .background(Theme.canvas.ignoresSafeArea())
     }
 }
 
@@ -80,11 +82,9 @@ private extension OnboardingView {
     var regionPage: some View {
         VStack(spacing: 24) {
             Spacer()
-            Image(systemName: "globe.europe.africa.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.tint)
+            OnboardingIcon(systemName: "globe.europe.africa.fill")
             Text("Welke regels gelden voor jou?")
-                .font(.title2.bold())
+                .font(.system(.title, design: .rounded, weight: .bold))
                 .multilineTextAlignment(.center)
             Text("Kies het land waarvoor je de rittenregistratie bijhoudt. Dat bepaalt welke gegevens per rit nodig zijn en hoe het rapport eruitziet. Je kunt dit later wijzigen in Instellingen.")
                 .font(.body)
@@ -111,8 +111,12 @@ private extension OnboardingView {
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(option == region ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: option == region ? 2 : 1)
+                            option == region ? Theme.accent.opacity(0.10) : Theme.card,
+                            in: RoundedRectangle(cornerRadius: Theme.innerRadius, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.innerRadius, style: .continuous)
+                                .strokeBorder(option == region ? Theme.accent : Theme.hairline, lineWidth: option == region ? 2 : 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -137,11 +141,9 @@ private struct OnboardingPage: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            Image(systemName: icon)
-                .font(.system(size: 64))
-                .foregroundStyle(.tint)
+            OnboardingIcon(systemName: icon)
             Text(title)
-                .font(.title2.bold())
+                .font(.system(.title, design: .rounded, weight: .bold))
                 .multilineTextAlignment(.center)
             Text(text)
                 .font(.body)
@@ -151,6 +153,20 @@ private struct OnboardingPage: View {
             Spacer()
         }
         .padding(.horizontal, 32)
+    }
+}
+
+/// Pictogram in een zachte accentcirkel.
+private struct OnboardingIcon: View {
+    let systemName: String
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 48, weight: .semibold))
+            .foregroundStyle(Theme.accent)
+            .frame(width: 112, height: 112)
+            .background(Theme.accent.opacity(0.12), in: Circle())
+            .accessibilityHidden(true)
     }
 }
 

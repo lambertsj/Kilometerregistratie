@@ -51,6 +51,7 @@ struct VehiclesView: View {
                         }
                     }
                 }
+                    .themedList()
             }
         }
         .navigationTitle("Voertuigen")

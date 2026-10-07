@@ -125,6 +125,7 @@ struct ReportView: View {
                     Label(settings.taxRegion.complianceNotice, systemImage: "info.circle")
                 }
             }
+                .themedList()
             .navigationTitle("Rapport")
             .sheet(item: $exportedFile) { file in
                 ShareSheet(url: file.url)

@@ -33,8 +33,8 @@ extension IssueSeverity {
 
     var color: Color {
         switch self {
-        case .blocking: .red
-        case .warning: .orange
+        case .blocking: Theme.danger
+        case .warning: Theme.warning
         }
     }
 
@@ -137,9 +137,9 @@ extension LogHeadlineState {
 
     var color: Color {
         switch self {
-        case .ok: .green
-        case .warnings: .orange
-        case .blocking: .red
+        case .ok: Theme.ok
+        case .warnings: Theme.warning
+        case .blocking: Theme.danger
         }
     }
 }

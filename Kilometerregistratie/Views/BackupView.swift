@@ -45,11 +45,11 @@ struct BackupView: View {
                 if !password.isEmpty && password.count < 8 {
                     Text("Gebruik minimaal 8 tekens.")
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 } else if !passwordRepeat.isEmpty && password != passwordRepeat {
                     Text("De wachtwoorden komen niet overeen.")
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 }
             }
 
@@ -72,6 +72,7 @@ struct BackupView: View {
                 Text("Terugzetten vervangt alle huidige ritten, voertuigen en instellingen door de inhoud van de back-up.")
             }
         }
+            .themedList()
         .navigationTitle("Back-up")
         .sheet(item: $exportedFile) { file in
             ShareSheet(url: file.url)

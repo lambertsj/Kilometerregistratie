@@ -4,9 +4,9 @@ extension TripCategory {
     /// Vaste categoriekleur, overal in de app hetzelfde (lijst, badges, diagram).
     var color: Color {
         switch self {
-        case .business: .blue
-        case .commute: .teal
-        case .personal: .purple
+        case .business: Theme.business
+        case .commute: Theme.commute
+        case .personal: Theme.personal
         }
     }
 
@@ -28,7 +28,7 @@ struct CategoryBadge: View {
             .font(.caption2.weight(.semibold))
             .foregroundStyle(category.color)
             .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(category.color.opacity(0.15), in: Capsule())
+            .padding(.vertical, 4)
+            .background(category.color.opacity(0.14), in: Capsule())
     }
 }

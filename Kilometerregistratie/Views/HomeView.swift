@@ -22,23 +22,35 @@ struct HomeView: View {
     @State private var finishedTrip: Trip?
     @State private var showsAddTripSheet = false
     @State private var errorMessage: String?
+    @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Knopdiameter; schaalt mee met Dynamic Type zodat hij altijd goed te raken is.
+    @ScaledMetric(relativeTo: .largeTitle) private var buttonSize: CGFloat = 176
+
+    private var buttonColor: Color { activeTrip == nil ? Theme.accent : Theme.dangerFill }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 32) {
-                statsHeader
-                Spacer()
-                startStopButton
-                if activeTrip != nil {
-                    Button("Rit annuleren", role: .destructive) {
-                        locationService.cancelRecording()
-                        attempt { try recorder.cancel(context: context) }
+            ScrollView {
+                VStack(spacing: 28) {
+                    statsHeader
+                    startStopButton
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    if activeTrip != nil {
+                        Button("Rit annuleren", role: .destructive) {
+                            locationService.cancelRecording()
+                            attempt { try recorder.cancel(context: context) }
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .frame(minHeight: 44)
                     }
-                    .font(.subheadline)
                 }
-                Spacer()
+                .padding()
+                .readableWidth()
             }
-            .padding()
+            .scrollBounceBehavior(.basedOnSize)
+            .background(Theme.canvas.ignoresSafeArea())
             .navigationTitle("Kilometerregistratie")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -129,7 +141,7 @@ struct HomeView: View {
                 title: String(localized: "Deze maand", comment: "Statistiekkaart: kilometers deze maand"),
                 value: currentMonthKm.formatted(.number.precision(.fractionLength(0...1))),
                 unit: "km",
-                color: .accentColor
+                color: Theme.accent
             )
             privateCounterCard
         }
@@ -139,9 +151,9 @@ struct HomeView: View {
         let km = privateKmThisYear
         let status = MileageStatistics.privateKmStatus(forYearTotal: km)
         let color: Color = switch status {
-        case .ok: .green
-        case .nearingLimit: .orange
-        case .overLimit: .red
+        case .ok: Theme.ok
+        case .nearingLimit: Theme.warning
+        case .overLimit: Theme.danger
         }
         let unit = String(
             format: String(localized: "van %lld km", comment: "Eenheid bij de privékilometerteller: 'van 500 km'; %lld is de grens"),
@@ -162,7 +174,7 @@ struct HomeView: View {
             if let trip = activeTrip {
                 TimelineView(.periodic(from: trip.startDate, by: 1)) { timeline in
                     Text(elapsedText(since: trip.startDate, now: timeline.date))
-                        .font(.system(.title, design: .monospaced))
+                        .font(.system(.largeTitle, design: .rounded, weight: .semibold).monospacedDigit())
                         .contentTransition(.numericText())
                 }
                 .accessibilityLabel("Verstreken rittijd")
@@ -181,17 +193,37 @@ struct HomeView: View {
             Button {
                 toggleRecording()
             } label: {
-                Text(activeTrip == nil ? "START" : "STOP")
-                    .font(.system(size: 36, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(width: 180, height: 180)
-                    .background(
-                        Circle()
-                            .fill(activeTrip == nil ? Color.green : Color.red)
-                            .shadow(color: .black.opacity(0.2), radius: 12, y: 6)
-                    )
+                ZStack {
+                    // Zachte halo's geven de knop gewicht; tijdens opname
+                    // pulseert de buitenste ring als "live"-signaal.
+                    Circle()
+                        .fill(buttonColor.opacity(0.10))
+                        .frame(width: buttonSize * 1.28, height: buttonSize * 1.28)
+                    Circle()
+                        .fill(buttonColor.opacity(0.16))
+                        .frame(width: buttonSize * 1.12, height: buttonSize * 1.12)
+                        .scaleEffect(pulse && activeTrip != nil && !reduceMotion ? 1.06 : 1)
+                    Circle()
+                        .fill(buttonColor)
+                        .frame(width: buttonSize, height: buttonSize)
+                        .shadow(color: buttonColor.opacity(0.35), radius: 18, y: 8)
+                    VStack(spacing: 6) {
+                        Image(systemName: activeTrip == nil ? "play.fill" : "stop.fill")
+                            .font(.system(size: buttonSize * 0.2, weight: .bold))
+                        Text(activeTrip == nil ? "START" : "STOP")
+                            .font(.system(size: buttonSize * 0.17, weight: .heavy, design: .rounded))
+                            .tracking(1.5)
+                    }
+                    .foregroundStyle(activeTrip == nil ? Theme.onAccent : Color.white)
+                }
+                .frame(width: buttonSize * 1.28, height: buttonSize * 1.28)
+                .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableStyle())
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { pulse = true }
+            }
             .accessibilityLabel(activeTrip == nil
                 ? String(localized: "Start rit", comment: "Toegankelijkheidslabel: rit starten")
                 : String(localized: "Stop rit", comment: "Toegankelijkheidslabel: rit stoppen")
@@ -253,20 +285,21 @@ struct StatCard: View {
     let color: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption)
+                .font(.footnote.weight(.medium))
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.title2.bold())
+                .font(.figure(.largeTitle))
                 .foregroundStyle(color)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
             Text(unit)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 16))
+        .themedCard()
         .accessibilityElement(children: .combine)
     }
 }

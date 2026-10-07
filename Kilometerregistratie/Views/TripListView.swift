@@ -51,6 +51,7 @@ struct TripListView: View {
                                 }
                             }
                             .onDelete(perform: deleteTrips)
+                            .listRowBackground(Theme.card)
                         } header: {
                             // "km" en "·" zijn geen woorden die vertaald hoeven
                             // te worden; alleen `tripsCountText` levert een
@@ -58,6 +59,7 @@ struct TripListView: View {
                             Text("\(tripsCountText(filteredTrips.count)) · \(filteredTotalKm.formatted(.number.precision(.fractionLength(0...1)))) km")
                         }
                     }
+                    .themedList()
                     .navigationDestination(for: UUID.self) { tripID in
                         if let trip = visibleTrips.first(where: { $0.id == tripID }) {
                             TripDetailView(trip: trip)
@@ -75,7 +77,7 @@ struct TripListView: View {
             .safeAreaInset(edge: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Ritten")
-                        .font(.largeTitle.bold())
+                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Picker("Periode", selection: $periodFilter) {
@@ -148,33 +150,44 @@ struct TripRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: trip.category.iconName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(trip.category.color)
+                .frame(width: 40, height: 40)
+                .background(trip.category.color.opacity(0.14), in: RoundedRectangle(cornerRadius: Theme.innerRadius, style: .continuous))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(routeText)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(2)
                 Text(trip.startDate.formatted(date: .abbreviated, time: .shortened))
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                Text("\(trip.distanceKm.formatted(.number.precision(.fractionLength(0...1)))) km")
-                    .font(.subheadline.bold())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    CategoryBadge(category: trip.category)
+                    if let vehicle = trip.vehicle {
+                        Text(vehicle.name)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !trip.clientLabel.isEmpty {
+                        Text(trip.clientLabel)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
-            Text(routeText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            HStack {
-                CategoryBadge(category: trip.category)
-                if let vehicle = trip.vehicle {
-                    Text(vehicle.name)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                if !trip.clientLabel.isEmpty {
-                    Text(trip.clientLabel)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(trip.distanceKm.formatted(.number.precision(.fractionLength(0...1))))
+                    .font(.figure(.title3))
+                Text("km")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
 }

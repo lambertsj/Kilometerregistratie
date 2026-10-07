@@ -71,9 +71,10 @@ struct DashboardView: View {
                     validationCard
                 }
                 .padding()
+                .readableWidth()
             }
             .navigationTitle("Dashboard")
-            .background(Color(.systemGroupedBackground))
+            .background(Theme.canvas.ignoresSafeArea())
         }
     }
 
@@ -149,7 +150,7 @@ struct DashboardView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(amount.formatted(.currency(code: "EUR")))
-                        .font(.title2.bold())
+                        .font(.figure(.title))
                     Text(reimbursementDetailText(businessKm: businessKm))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -157,7 +158,7 @@ struct DashboardView: View {
                 Spacer()
                 Image(systemName: "eurosign.circle.fill")
                     .font(.title)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.ok)
             }
         }
     }
@@ -182,7 +183,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("\(privateKm.formatted(.number.precision(.fractionLength(0...1)))) km")
-                        .font(.title2.bold())
+                        .font(.figure(.title))
                         .foregroundStyle(statusColor(status))
                     Spacer()
                     Text(String(format: String(localized: "grens %lld km", comment: "Bijschrift bij de 500 km-voortgangsbalk; %lld is de grens"), Int(limit)))
@@ -191,6 +192,8 @@ struct DashboardView: View {
                 }
                 ProgressView(value: min(privateKm, limit), total: limit)
                     .tint(statusColor(status))
+                    .scaleEffect(x: 1, y: 1.6)
+                    .padding(.vertical, 2)
 
                 switch status {
                 case .ok:
@@ -200,11 +203,11 @@ struct DashboardView: View {
                 case .nearingLimit:
                     Label("Let op: je nadert de 500 km-grens. Boven de grens geldt bijtelling voor het hele jaar.", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 case .overLimit:
                     Label(overLimitText(privateKm: privateKm), systemImage: "xmark.octagon.fill")
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.danger)
                 }
             }
         }
@@ -241,8 +244,7 @@ struct DashboardView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            .padding()
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+            .themedCard()
         }
         .buttonStyle(.plain)
     }
@@ -254,9 +256,9 @@ struct DashboardView: View {
 
     private func statusColor(_ status: MileageStatistics.PrivateKmStatus) -> Color {
         switch status {
-        case .ok: .green
-        case .nearingLimit: .orange
-        case .overLimit: .red
+        case .ok: Theme.ok
+        case .nearingLimit: Theme.warning
+        case .overLimit: Theme.danger
         }
     }
 }
@@ -288,8 +290,7 @@ struct DashboardCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .themedCard()
     }
 }
 
