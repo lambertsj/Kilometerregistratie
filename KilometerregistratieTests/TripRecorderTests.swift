@@ -13,11 +13,10 @@ final class TripRecorderTests: XCTestCase {
     func testStartStopFlow() throws {
         let context = try makeContext()
         let recorder = TripRecorder()
-        recorder.restoreActiveTrip(context: context)
-        XCTAssertNil(recorder.activeTrip)
+        XCTAssertNil(try TripRepository(context: context).activeTrip())
 
         try recorder.start(context: context, vehicle: nil)
-        XCTAssertNotNil(recorder.activeTrip)
+        XCTAssertNotNil(try TripRepository(context: context).activeTrip())
 
         // Dubbele start mag geen tweede rit aanmaken.
         try recorder.start(context: context, vehicle: nil)
@@ -25,17 +24,14 @@ final class TripRecorderTests: XCTestCase {
 
         let stopped = try recorder.stop(context: context)
         XCTAssertNotNil(stopped?.endDate)
-        XCTAssertNil(recorder.activeTrip)
+        XCTAssertNil(try TripRepository(context: context).activeTrip())
     }
 
     func testActiveTripSurvivesRestart() throws {
         let context = try makeContext()
-        let first = TripRecorder()
-        try first.start(context: context, vehicle: nil)
-
-        let second = TripRecorder()
-        second.restoreActiveTrip(context: context)
-        XCTAssertEqual(second.activeTrip?.id, first.activeTrip?.id)
+        let started = try TripRecorder().start(context: context, vehicle: nil)
+        XCTAssertNotNil(started)
+        XCTAssertEqual(try TripRepository(context: context).activeTrip()?.id, started?.id)
     }
 
     func testCancelDeletesTrip() throws {
@@ -43,7 +39,27 @@ final class TripRecorderTests: XCTestCase {
         let recorder = TripRecorder()
         try recorder.start(context: context, vehicle: nil)
         try recorder.cancel(context: context)
-        XCTAssertNil(recorder.activeTrip)
+        XCTAssertNil(try TripRepository(context: context).activeTrip())
         XCTAssertEqual(try TripRepository(context: context).trips().count, 0)
+    }
+
+    /// Een automatische rit wordt door de service gestart, niet door de
+    /// recorder. STOP moet die rit toch kunnen afsluiten.
+    func testStopClosesTripStartedElsewhere() throws {
+        let context = try makeContext()
+        let trip = Trip(startDate: .now.addingTimeInterval(-600), isAutomaticallyRecorded: true)
+        try TripWriteService(context: context).create(trip)
+
+        let stopped = try TripRecorder().stop(context: context)
+        XCTAssertEqual(stopped?.id, trip.id)
+        XCTAssertNotNil(trip.endDate)
+    }
+
+    func testStartDoesNotCreateSecondTripNextToTripStartedElsewhere() throws {
+        let context = try makeContext()
+        try TripWriteService(context: context).create(Trip(startDate: .now, isAutomaticallyRecorded: true))
+
+        try TripRecorder().start(context: context, vehicle: nil)
+        XCTAssertEqual(try TripRepository(context: context).trips().count, 1)
     }
 }

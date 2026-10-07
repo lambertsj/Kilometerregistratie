@@ -7,9 +7,16 @@ import UIKit
 struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Environment(LocationTrackingService.self) private var locationService
-    @State private var recorder = TripRecorder()
+    private let recorder = TripRecorder()
     @Query(sort: \Trip.startDate, order: .reverse) private var trips: [Trip]
     @Query(sort: \Vehicle.createdAt) private var vehicles: [Vehicle]
+
+    /// De lopende rit, rechtstreeks uit de database. Daardoor volgt het
+    /// scherm ook ritten die op de achtergrond automatisch starten of
+    /// stoppen, in plaats van een eigen kopie bij te houden.
+    private var activeTrip: Trip? {
+        trips.first { $0.endDate == nil && $0.deletedAt == nil }
+    }
 
     /// De zojuist gestopte rit waarvoor het afrondformulier getoond wordt.
     @State private var finishedTrip: Trip?
@@ -22,7 +29,7 @@ struct HomeView: View {
                 statsHeader
                 Spacer()
                 startStopButton
-                if recorder.activeTrip != nil {
+                if activeTrip != nil {
                     Button("Rit annuleren", role: .destructive) {
                         locationService.cancelRecording()
                         attempt { try recorder.cancel(context: context) }
@@ -74,9 +81,6 @@ struct HomeView: View {
                 Button("OK", role: .cancel) { locationService.dismissIssue() }
             } message: {
                 Text(locationIssueMessage)
-            }
-            .onAppear {
-                recorder.restoreActiveTrip(context: context)
             }
         }
     }
@@ -155,7 +159,7 @@ struct HomeView: View {
 
     private var startStopButton: some View {
         VStack(spacing: 16) {
-            if let trip = recorder.activeTrip {
+            if let trip = activeTrip {
                 TimelineView(.periodic(from: trip.startDate, by: 1)) { timeline in
                     Text(elapsedText(since: trip.startDate, now: timeline.date))
                         .font(.system(.title, design: .monospaced))
@@ -177,22 +181,22 @@ struct HomeView: View {
             Button {
                 toggleRecording()
             } label: {
-                Text(recorder.activeTrip == nil ? "START" : "STOP")
+                Text(activeTrip == nil ? "START" : "STOP")
                     .font(.system(size: 36, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
                     .frame(width: 180, height: 180)
                     .background(
                         Circle()
-                            .fill(recorder.activeTrip == nil ? Color.green : Color.red)
+                            .fill(activeTrip == nil ? Color.green : Color.red)
                             .shadow(color: .black.opacity(0.2), radius: 12, y: 6)
                     )
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(recorder.activeTrip == nil
+            .accessibilityLabel(activeTrip == nil
                 ? String(localized: "Start rit", comment: "Toegankelijkheidslabel: rit starten")
                 : String(localized: "Stop rit", comment: "Toegankelijkheidslabel: rit stoppen")
             )
-            .sensoryFeedback(.impact, trigger: recorder.activeTrip != nil)
+            .sensoryFeedback(.impact, trigger: activeTrip != nil)
 
             if locationDenied {
                 Label(
@@ -211,10 +215,11 @@ struct HomeView: View {
     }
 
     private func toggleRecording() {
-        if recorder.activeTrip == nil {
-            attempt { try recorder.start(context: context, vehicle: vehicles.first) }
-            if let trip = recorder.activeTrip {
-                locationService.beginRouteRecording(for: trip)
+        if activeTrip == nil {
+            attempt {
+                if let trip = try recorder.start(context: context, vehicle: vehicles.first) {
+                    locationService.beginRouteRecording(for: trip)
+                }
             }
         } else {
             // Eerst de GPS-opname afronden (route, afstand, adressen),
