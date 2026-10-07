@@ -63,6 +63,15 @@ struct TripRepository {
         return try context.fetch(descriptor).first
     }
 
+    /// Einde van de laatst afgesloten rit, ongeacht hoe die is vastgelegd.
+    func latestEndDate() throws -> Date? {
+        let predicate = #Predicate<Trip> { $0.endDate != nil && $0.deletedAt == nil }
+        var descriptor = FetchDescriptor<Trip>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\.endDate, order: .reverse)]
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first?.endDate
+    }
+
     /// De meest recent afgesloten automatisch gedetecteerde rit, gebruikt om
     /// te beslissen of een nieuwe detectie hiermee samengevoegd moet worden
     /// (zie `AutomaticTripMerge`) in plaats van een aparte rit aan te maken.

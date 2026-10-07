@@ -1,6 +1,5 @@
 import Foundation
 import CoreLocation
-import CoreMotion
 import SwiftData
 import Observation
 
@@ -29,17 +28,18 @@ import Observation
 ///   significant-change-monitor blijft actief.
 @Observable
 @MainActor
-final class LocationTrackingService: NSObject {
+final class LocationTrackingService {
     enum RecordingSource: Equatable {
         case manual
         case automatic
     }
 
-    private let manager = CLLocationManager()
-    private let motionActivityManager = CMMotionActivityManager()
+    private let locationProvider: LocationProviding
+    private let motionProvider: MotionProviding
+    private let time: TimeSource
     private var modelContext: ModelContext?
     private var detector = TripDetector()
-    private let geocoder = GeocodingService()
+    private let geocoder: AddressResolving
 
     /// Meest recente CoreMotion-classificatie; gebruikt door
     /// `MotionActivityGate` om te voorkomen dat OV of fietsen (die toevallig
@@ -105,16 +105,35 @@ final class LocationTrackingService: NSObject {
     /// binnen inkomende samples kan beslissen).
     private var lastSampleAt: Date?
     private var recordingStartedAt: Date?
-    private var watchdogTask: Task<Void, Never>?
+    private var watchdogTimer: TimerHandle?
 
-    override init() {
-        super.init()
-        manager.delegate = self
-        manager.activityType = .automotiveNavigation
-        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        manager.distanceFilter = 25
-        manager.pausesLocationUpdatesAutomatically = true
-        authorizationStatus = manager.authorizationStatus
+    /// Zoveel seconden (op sample-tijd) tussen twee tussentijdse schrijfacties
+    /// van de route. Zonder dit staat de route alleen in het geheugen en weet
+    /// `resumeIfNeeded` na een kill niet meer wanneer de rit voor het laatst
+    /// leefde.
+    private static let routePersistInterval: TimeInterval = 60
+    private var lastRoutePersistAt: Date?
+
+    /// Laatste moment waarop de rit aantoonbaar bezig was: het laatste sample,
+    /// of na een hervatting het laatste punt dat vóór de kill is opgeslagen.
+    /// Dit bepaalt de einddatum als de opname stilvalt. `lastSampleAt` blijft
+    /// de levendigheid voor de watchdog (na een hervatting: het heropenmoment,
+    /// zodat het eerste sample nog een kans krijgt).
+    private var lastActivityAt: Date?
+
+    init(
+        locationProvider: LocationProviding? = nil,
+        motionProvider: MotionProviding? = nil,
+        time: TimeSource? = nil,
+        geocoder: AddressResolving? = nil
+    ) {
+        let locationProvider = locationProvider ?? CoreLocationProvider()
+        self.locationProvider = locationProvider
+        self.motionProvider = motionProvider ?? CoreMotionProvider()
+        self.time = time ?? SystemTimeSource()
+        self.geocoder = geocoder ?? GeocodingService()
+        locationProvider.delegate = self
+        authorizationStatus = locationProvider.authorizationStatus
     }
 
     func configure(context: ModelContext) {
@@ -137,7 +156,7 @@ final class LocationTrackingService: NSObject {
 
     /// Voor automatische detectie op de achtergrond is "Altijd" nodig.
     func requestAlwaysAuthorization() {
-        manager.requestAlwaysAuthorization()
+        locationProvider.requestAlwaysAuthorization()
     }
 
     // MARK: - Instellingen toepassen
@@ -151,15 +170,15 @@ final class LocationTrackingService: NSObject {
         detectionEnabled = wantsDetection
 
         if wantsDetection {
-            manager.startMonitoringSignificantLocationChanges()
+            locationProvider.startMonitoringSignificantLocationChanges()
             // Continue updates starten pas zodra er rijsnelheid gezien wordt.
             startMotionUpdatesIfAvailable()
         } else {
-            manager.stopMonitoringSignificantLocationChanges()
+            locationProvider.stopMonitoringSignificantLocationChanges()
             stopMotionUpdates()
             detector.reset()
             if recordingSource == .automatic {
-                Task { await stopRecording(endDate: .now) }
+                endRecordingInBackground(endDate: time.now)
             }
         }
     }
@@ -170,16 +189,13 @@ final class LocationTrackingService: NSObject {
     private func applyAccuracyPreference(_ preference: LocationAccuracyPreference) {
         switch preference {
         case .batterySaver:
-            manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-            manager.distanceFilter = 50
+            locationProvider.apply(accuracy: kCLLocationAccuracyHundredMeters, distanceFilter: 50)
             maxHorizontalAccuracy = 120
         case .balanced:
-            manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-            manager.distanceFilter = 25
+            locationProvider.apply(accuracy: kCLLocationAccuracyNearestTenMeters, distanceFilter: 25)
             maxHorizontalAccuracy = GPSPointFilter.defaultMaxHorizontalAccuracy
         case .precise:
-            manager.desiredAccuracy = kCLLocationAccuracyBest
-            manager.distanceFilter = 10
+            locationProvider.apply(accuracy: kCLLocationAccuracyBest, distanceFilter: 10)
             maxHorizontalAccuracy = 30
         }
     }
@@ -187,18 +203,14 @@ final class LocationTrackingService: NSObject {
     // MARK: - CoreMotion
 
     private func startMotionUpdatesIfAvailable() {
-        guard CMMotionActivityManager.isActivityAvailable() else { return }
-        motionActivityManager.startActivityUpdates(to: .main) { [weak self] activity in
-            guard let self, let activity else { return }
-            self.latestActivity = MotionActivityGate.ActivitySample(
-                automotive: activity.automotive,
-                confidence: MotionActivityGate.ActivitySample.Confidence(activity.confidence)
-            )
+        guard motionProvider.isAvailable else { return }
+        motionProvider.start { [weak self] sample in
+            self?.latestActivity = sample
         }
     }
 
     private func stopMotionUpdates() {
-        motionActivityManager.stopActivityUpdates()
+        motionProvider.stop()
         latestActivity = nil
     }
 
@@ -213,18 +225,40 @@ final class LocationTrackingService: NSObject {
             startRecording(trip: trip, source: .manual)
         } else if authorizationStatus == .notDetermined {
             awaitingAuthorizationTrip = trip
-            manager.requestWhenInUseAuthorization()
+            locationProvider.requestWhenInUseAuthorization()
         }
     }
 
-    /// Rondt de lopende opname af: schrijft route, afstand, coördinaten en
-    /// (via reverse geocoding met cache) adressen naar de rit.
-    func stopRecording(endDate: Date) async {
-        guard let trip = recordingTrip else { return }
-        let wasAutomatic = recordingSource == .automatic
-        stopContinuousUpdates()
+    /// Een losgekoppelde opname: alles wat nodig is om de rit weg te schrijven,
+    /// nadat de service zelf al weer vrij is voor een volgende rit.
+    private struct DetachedRecording {
+        let trip: Trip
+        let points: [RoutePoint]
+        /// Of de service de einddatum zelf zet. Een handmatige rit krijgt die
+        /// van `TripRecorder.stop`, zodat dat niet als wijziging achteraf geldt.
+        let setsEndDate: Bool
+        let classifies: Bool
+        let endDate: Date
+    }
 
-        let points = routePoints
+    /// Ritten waarvan het wegschrijven nog loopt. Ze staan tot dan nog open in
+    /// de database maar blokkeren geen nieuwe automatische rit.
+    private var finishingTripIDs: Set<UUID> = []
+
+    /// Koppelt de lopende opname synchroon los en zet de service terug naar
+    /// "geen opname". Synchroon, zodat een volgend sample in dezelfde batch
+    /// niet meer bij de oude rit terechtkomt.
+    private func detachRecording(endDate: Date) -> DetachedRecording? {
+        guard let trip = recordingTrip else { return nil }
+        let wasAutomatic = recordingSource == .automatic
+        let recording = DetachedRecording(
+            trip: trip, points: routePoints, setsEndDate: wasAutomatic, classifies: wasAutomatic, endDate: endDate
+        )
+        stopContinuousUpdates()
+        // Een handmatige rit laat de detector in `.moving` achter (zijn start
+        // werd genegeerd); begin na STOP weer schoon.
+        if !wasAutomatic { detector.reset() }
+
         recordingTrip = nil
         recordingSource = nil
         routePoints = []
@@ -232,14 +266,43 @@ final class LocationTrackingService: NSObject {
         lastSampleAt = nil
         recordingStartedAt = nil
         lastAcceptedSample = nil
+        lastRoutePersistAt = nil
+        lastActivityAt = nil
+        finishingTripIDs.insert(trip.id)
+        return recording
+    }
 
+    /// Schrijft route, afstand, coördinaten, adressen (reverse geocoding met
+    /// cache) en eventueel de voorgestelde categorie in één keer naar de rit.
+    /// De einddatum staat in diezelfde schrijfactie: alles wat daarna nog
+    /// gewijzigd zou worden, telt in een regio met bewaarplicht als wijziging
+    /// achteraf.
+    private func finish(_ recording: DetachedRecording) async {
+        let trip = recording.trip
+        defer { finishingTripIDs.remove(trip.id) }
         guard let context = modelContext else { return }
-        let writer = TripWriteService(context: context)
+        let points = recording.points
 
-        _ = try? writer.update(trip) { trip in
+        var resolvedStart: String?
+        var resolvedEnd: String?
+        if let first = points.first {
+            resolvedStart = await geocoder.address(latitude: first.latitude, longitude: first.longitude, context: context)
+        }
+        if let last = points.last {
+            resolvedEnd = await geocoder.address(latitude: last.latitude, longitude: last.longitude, context: context)
+        }
+
+        let distanceKm = points.count >= 2 ? GeoDistance.routeDistanceKm(points) : trip.distanceKm
+        let suggestsCategory = recording.classifies && distanceKm >= Self.minimumDistanceForClassificationKm
+        let category = suggestsCategory
+            ? suggestedCategory(for: trip, startAddress: resolvedStart ?? trip.startAddress, endAddress: resolvedEnd ?? trip.endAddress, context: context)
+            : nil
+
+        _ = try? TripWriteService(context: context).update(trip) { trip in
+            if recording.setsEndDate { trip.endDate = recording.endDate }
             if points.count >= 2 {
                 trip.routeData = try? RoutePolyline.encode(points)
-                trip.distanceKm = GeoDistance.routeDistanceKm(points)
+                trip.distanceKm = distanceKm
             }
             if let first = points.first {
                 trip.startLatitude = first.latitude
@@ -249,41 +312,40 @@ final class LocationTrackingService: NSObject {
                 trip.endLatitude = last.latitude
                 trip.endLongitude = last.longitude
             }
-        }
-
-        // Reverse geocoding gebeurt asynchroon; de adressen worden daarna in
-        // één keer weggeschreven.
-        var resolvedStart: String?
-        var resolvedEnd: String?
-        if let first = points.first {
-            resolvedStart = await geocoder.address(latitude: first.latitude, longitude: first.longitude, context: context)
-        }
-        if let last = points.last {
-            resolvedEnd = await geocoder.address(latitude: last.latitude, longitude: last.longitude, context: context)
-        }
-        _ = try? writer.update(trip) { trip in
             if let resolvedStart { trip.startAddress = resolvedStart }
             if let resolvedEnd { trip.endAddress = resolvedEnd }
+            if let category { trip.category = category }
         }
 
-        if wasAutomatic, trip.distanceKm >= Self.minimumDistanceForClassificationKm {
-            applySuggestedCategory(to: trip, context: context)
+        if suggestsCategory {
             pendingClassificationTrip = trip
         }
     }
 
-    /// Vult alvast de zelflerende/kantooruren-suggestie in, net als bij het
-    /// afrondformulier voor handmatige ritten, zodat de rit ook zonder actie
-    /// van de gebruiker een zinvolle categorie heeft — het één-tik-scherm
-    /// laat de gebruiker die daarna bevestigen of aanpassen.
-    private func applySuggestedCategory(to trip: Trip, context: ModelContext) {
+    /// Rondt de lopende opname af: koppelt los en schrijft de rit weg.
+    func stopRecording(endDate: Date) async {
+        guard let recording = detachRecording(endDate: endDate) else { return }
+        await finish(recording)
+    }
+
+    /// Zoals `stopRecording`, maar het loskoppelen gebeurt direct en het
+    /// wegschrijven op de achtergrond. Voor gebeurtenissen midden in een batch.
+    private func endRecordingInBackground(endDate: Date) {
+        guard let recording = detachRecording(endDate: endDate) else { return }
+        Task { await finish(recording) }
+    }
+
+    /// De zelflerende/kantooruren-suggestie, net als bij het afrondformulier
+    /// voor handmatige ritten, zodat de rit ook zonder actie van de gebruiker
+    /// een zinvolle categorie heeft; het één-tik-scherm laat de gebruiker die
+    /// daarna bevestigen of aanpassen.
+    private func suggestedCategory(for trip: Trip, startAddress: String, endAddress: String, context: ModelContext) -> TripCategory {
         var learned: TripCategory?
-        if let key = TripClassifier.routeKey(startAddress: trip.startAddress, endAddress: trip.endAddress) {
+        if let key = TripClassifier.routeKey(startAddress: startAddress, endAddress: endAddress) {
             learned = ClassificationRuleRepository(context: context).learnedCategory(forRouteKey: key)
         }
         let settings = AppSettings.fetchOrCreate(in: context)
-        let suggested = TripClassifier.suggestCategory(startDate: trip.startDate, learned: learned, schedule: settings.workSchedule)
-        _ = try? TripWriteService(context: context).update(trip) { $0.category = suggested }
+        return TripClassifier.suggestCategory(startDate: trip.startDate, learned: learned, schedule: settings.workSchedule)
     }
 
     /// Breekt de opname af zonder iets naar de rit te schrijven
@@ -291,6 +353,7 @@ final class LocationTrackingService: NSObject {
     func cancelRecording() {
         guard recordingTrip != nil else { return }
         stopContinuousUpdates()
+        if recordingSource == .manual { detector.reset() }
         recordingTrip = nil
         recordingSource = nil
         routePoints = []
@@ -298,6 +361,8 @@ final class LocationTrackingService: NSObject {
         lastSampleAt = nil
         recordingStartedAt = nil
         lastAcceptedSample = nil
+        lastRoutePersistAt = nil
+        lastActivityAt = nil
     }
 
     /// Hervat een opname na een app-herstart, voor een rit die nog "actief"
@@ -306,16 +371,29 @@ final class LocationTrackingService: NSObject {
     /// Beslist via `HangingTripRecovery` of hervatten nog zinvol is, of dat
     /// de rit direct afgesloten moet worden omdat er te veel tijd zonder
     /// teken van leven is verstreken.
-    func resumeIfNeeded(context: ModelContext, now: Date = .now) async {
+    func resumeIfNeeded(context: ModelContext, now: Date? = nil) async {
+        let now = now ?? time.now
         guard recordingTrip == nil else { return }
         guard let trip = try? TripRepository(context: context).activeTrip() else { return }
 
         let existingPoints = trip.routeData.flatMap { try? RoutePolyline.decode($0) } ?? []
         let lastKnownActivity = existingPoints.last.map { trip.startDate.addingTimeInterval($0.offset) } ?? trip.startDate
 
+        // Een handmatige rit zonder opgeslagen route (bv. zonder locatietoestemming)
+        // heeft geen teken van leven om op af te sluiten; afsluiten op de ritstart
+        // zou hem op duur nul zetten. De gebruiker sluit hem zelf af met STOP.
+        if !trip.isAutomaticallyRecorded, existingPoints.isEmpty { return }
+
         switch HangingTripRecovery.decide(lastKnownActivity: lastKnownActivity, now: now) {
         case .resume:
-            guard canUseLocation else { return }
+            guard canUseLocation else {
+                // Zonder toestemming kan de opname niet hervat worden. Sluit de
+                // rit af op het laatste teken van leven, in plaats van hem voor
+                // altijd open te laten staan, en laat de gebruiker weten waarom.
+                currentIssue = .permissionRevokedDuringRecording
+                await closeRecoveredTrip(trip, points: existingPoints, endDate: lastKnownActivity, context: context)
+                return
+            }
             recordingTrip = trip
             recordingSource = trip.isAutomaticallyRecorded ? .automatic : .manual
             routePoints = existingPoints
@@ -324,25 +402,43 @@ final class LocationTrackingService: NSObject {
             recordingStartedAt = trip.startDate
             lastSampleAt = now
             lastAcceptedSample = existingPoints.last.map { Self.sample(from: $0, routeStartDate: trip.startDate) }
+            lastRoutePersistAt = nil
+            lastActivityAt = lastKnownActivity
             if trip.isAutomaticallyRecorded {
                 detector.reset()
             }
             beginContinuousUpdates()
 
         case .finalize(let endDate):
-            _ = try? TripWriteService(context: context).update(trip) { $0.endDate = endDate }
+            await closeRecoveredTrip(trip, points: existingPoints, endDate: endDate, context: context)
         }
     }
 
-    private func startRecording(trip: Trip, source: RecordingSource) {
+    /// Sluit een rit af die na een herstart niet meer hervat kan worden. Een
+    /// automatische rit zonder enige voortgang (alleen het startsample) is
+    /// geen rit en wordt weggegooid in plaats van op duur nul bewaard.
+    private func closeRecoveredTrip(_ trip: Trip, points: [RoutePoint], endDate: Date, context: ModelContext) async {
+        if trip.isAutomaticallyRecorded, endDate <= trip.startDate {
+            try? TripWriteService(context: context).delete(trip)
+            return
+        }
+        await finish(DetachedRecording(
+            trip: trip, points: points, setsEndDate: true,
+            classifies: trip.isAutomaticallyRecorded, endDate: endDate
+        ))
+    }
+
+    func startRecording(trip: Trip, source: RecordingSource) {
         recordingTrip = trip
         recordingSource = source
         routePoints = []
         routeStartDate = trip.startDate
         liveDistanceKm = 0
         recordingStartedAt = trip.startDate
-        lastSampleAt = .now
+        lastSampleAt = time.now
         lastAcceptedSample = nil
+        lastRoutePersistAt = nil
+        lastActivityAt = time.now
         currentIssue = nil
         beginContinuousUpdates()
     }
@@ -358,17 +454,16 @@ final class LocationTrackingService: NSObject {
         // Achtergrond-updates zijn nodig om de rit door te meten als het
         // toestel in de zak/houder zit; de blauwe indicator maakt dit
         // transparant voor de gebruiker.
-        manager.allowsBackgroundLocationUpdates = true
-        manager.showsBackgroundLocationIndicator = true
-        manager.startUpdatingLocation()
+        locationProvider.setBackgroundUpdates(allowed: true, showsIndicator: true)
+        locationProvider.startUpdatingLocation()
         startWatchdog()
     }
 
     private func stopContinuousUpdates() {
-        manager.stopUpdatingLocation()
-        manager.allowsBackgroundLocationUpdates = false
-        watchdogTask?.cancel()
-        watchdogTask = nil
+        locationProvider.stopUpdatingLocation()
+        locationProvider.setBackgroundUpdates(allowed: false, showsIndicator: false)
+        watchdogTimer?.cancel()
+        watchdogTimer = nil
     }
 
     /// Onafhankelijk van binnenkomende locatiesamples: sluit een opname
@@ -377,33 +472,49 @@ final class LocationTrackingService: NSObject {
     /// doorloopt. `TripDetector` alleen kan dit niet, want die beslist enkel
     /// op basis van samples die binnenkomen.
     private func startWatchdog() {
-        watchdogTask?.cancel()
-        watchdogTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(30))
-                guard !Task.isCancelled else { return }
-                await self?.checkWatchdog()
-            }
+        watchdogTimer?.cancel()
+        watchdogTimer = time.every(30) { [weak self] in
+            await self?.checkWatchdog()
         }
     }
 
-    private func checkWatchdog() async {
+    /// De app is weer actief (voorgrond). Een opgeschorte app voert geen
+    /// timers uit; sluit een verlopen opname direct af.
+    func appDidBecomeActive() async {
+        // Of iOS gepauzeerde updates zelf hervat is niet bewezen (A4); opnieuw
+        // starten is veilig als ze al lopen.
+        if recordingTrip != nil { locationProvider.startUpdatingLocation() }
+        await checkWatchdog()
+    }
+
+    /// Draait ook zodra de app weer actief wordt: een opgeschorte app voert
+    /// de timer hierboven niet uit, dus zonder deze aanroep blijft een rit
+    /// open staan totdat de timer toevallig weer loopt.
+    func checkWatchdog(now: Date? = nil) async {
+        let now = now ?? time.now
         guard recordingTrip != nil,
               let startedAt = recordingStartedAt,
               let lastSample = lastSampleAt else { return }
         let watchdog = RecordingWatchdog(stopAfterStationaryInterval: detector.stopAfterStationaryInterval)
-        guard watchdog.shouldForceStop(recordingStartedAt: startedAt, lastSampleAt: lastSample, now: .now) else { return }
+        guard watchdog.shouldForceStop(
+            recordingStartedAt: startedAt,
+            lastSampleAt: lastSample,
+            now: now,
+            ignoreGPSSilence: recordingSource == .manual
+        ) else { return }
         detector.reset()
-        await stopRecording(endDate: lastSample)
+        await stopRecording(endDate: lastActivityAt ?? lastSample)
     }
 
     // MARK: - Samples verwerken
 
     fileprivate func handleAuthorizationChange() {
-        authorizationStatus = manager.authorizationStatus
+        authorizationStatus = locationProvider.authorizationStatus
         if !canUseLocation, recordingTrip != nil {
             currentIssue = .permissionRevokedDuringRecording
-            Task { await stopRecording(endDate: .now) }
+            // Het laatste teken van leven, niet het moment van de melding: die kan
+            // laat binnenkomen (bv. na opschorten of een hervatting).
+            endRecordingInBackground(endDate: lastActivityAt ?? time.now)
         }
         if let trip = awaitingAuthorizationTrip, authorizationStatus != .notDetermined {
             awaitingAuthorizationTrip = nil
@@ -413,22 +524,38 @@ final class LocationTrackingService: NSObject {
         }
     }
 
-    fileprivate func handle(locations: [CLLocation]) {
+    func handle(locations: [CLLocation]) {
         currentIssue = nil
         for location in locations {
-            if recordingTrip != nil {
+            let event: TripDetector.Event
+            if detectionEnabled {
+                event = detector.process(TripDetector.Sample(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    speed: location.speed,
+                    timestamp: location.timestamp
+                ))
+            } else {
+                event = .none
+            }
+
+            // Een sample dat een automatische rit beëindigt (bv. het eerste na
+            // een lang gat) hoort niet meer bij die rit: anders telt de afstand
+            // over het gat mee.
+            let endsAutomaticTrip: Bool
+            if case .tripEnded = event, recordingSource == .automatic {
+                endsAutomaticTrip = true
+            } else {
+                endsAutomaticTrip = false
+            }
+            if recordingTrip != nil, !endsAutomaticTrip {
                 lastSampleAt = location.timestamp
+                lastActivityAt = location.timestamp
                 appendRoutePoint(from: location)
             }
             guard detectionEnabled else { continue }
 
-            let sample = TripDetector.Sample(
-                latitude: location.coordinate.latitude,
-                longitude: location.coordinate.longitude,
-                speed: location.speed,
-                timestamp: location.timestamp
-            )
-            switch detector.process(sample) {
+            switch event {
             case .none:
                 // Wakker geworden door significant change zonder rijsnelheid:
                 // even continue updates aanzetten om snelheid te peilen zou
@@ -438,7 +565,7 @@ final class LocationTrackingService: NSObject {
             case .tripStarted:
                 guard recordingTrip == nil, let context = modelContext else { break }
                 // Geen dubbele registratie naast een handmatig gestarte rit.
-                guard (try? TripRepository(context: context).activeTrip()) == nil else { break }
+                if let active = try? TripRepository(context: context).activeTrip(), !finishingTripIDs.contains(active.id) { break }
                 // OV/fietsen kunnen toevallig de snelheidsdrempel halen; laat
                 // CoreMotion die gevallen wegfilteren. Detector terugzetten
                 // naar idle zodat een latere, echte rit gewoon opnieuw
@@ -448,6 +575,13 @@ final class LocationTrackingService: NSObject {
                     break
                 }
                 let repository = TripRepository(context: context)
+                // Een sample dat pas na een STOP-tik binnenkomt kan een tijdstempel
+                // vóór het einde van de vorige rit hebben; dat hoort bij die rit en
+                // start geen nieuwe (ritten mogen niet overlappen).
+                if let latestEnd = try? repository.latestEndDate(), location.timestamp <= latestEnd {
+                    detector.reset()
+                    break
+                }
                 if let previous = try? repository.mostRecentAutomaticTrip(),
                    let previousEnd = previous.endDate,
                    AutomaticTripMerge.shouldMerge(previousTripEndDate: previousEnd, newTripStartDate: location.timestamp) {
@@ -465,9 +599,8 @@ final class LocationTrackingService: NSObject {
                 }
 
             case .tripEnded(let endDate):
-                if recordingSource == .automatic, let trip = recordingTrip, let context = modelContext {
-                    _ = try? TripWriteService(context: context).update(trip) { $0.endDate = endDate }
-                    Task { await stopRecording(endDate: endDate) }
+                if recordingSource == .automatic {
+                    endRecordingInBackground(endDate: endDate)
                 }
             }
         }
@@ -499,6 +632,8 @@ final class LocationTrackingService: NSObject {
         recordingStartedAt = trip.startDate
         lastSampleAt = location.timestamp
         lastAcceptedSample = existingPoints.last.map { Self.sample(from: $0, routeStartDate: trip.startDate) }
+        lastRoutePersistAt = nil
+        lastActivityAt = location.timestamp
         beginContinuousUpdates()
         appendRoutePoint(from: location)
     }
@@ -529,42 +664,36 @@ final class LocationTrackingService: NSObject {
             ) / 1000
         }
         routePoints.append(point)
+        persistRouteIfDue(at: location.timestamp)
+    }
+
+    /// Schrijft de route tussentijds weg, hooguit eens per interval. Dit is
+    /// het opbouwen van een lopende rit en geeft dus geen audit-revisie.
+    private func persistRouteIfDue(at timestamp: Date) {
+        if let last = lastRoutePersistAt, timestamp.timeIntervalSince(last) < Self.routePersistInterval { return }
+        guard let trip = recordingTrip, let context = modelContext,
+              let data = try? RoutePolyline.encode(routePoints) else { return }
+        lastRoutePersistAt = timestamp
+        _ = try? TripWriteService(context: context).update(trip) { $0.routeData = data }
     }
 }
 
-extension LocationTrackingService: CLLocationManagerDelegate {
-    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        Task { @MainActor in
-            handleAuthorizationChange()
-        }
+extension LocationTrackingService: LocationProvidingDelegate {
+    func locationProvider(didUpdate locations: [CLLocation]) {
+        handle(locations: locations)
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        Task { @MainActor in
-            handle(locations: locations)
-        }
+    func locationProviderDidChangeAuthorization() {
+        handleAuthorizationChange()
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationProviderDidFail(_ error: Error) {
         // Tijdelijke GPS-uitval is normaal (tunnel, parkeergarage); de
         // detector en route-opname herstellen zodra er weer samples komen.
         // Alleen het systeemwide uitschakelen van locatievoorzieningen tonen
         // we aan de gebruiker, want dat registreert helemaal niets meer
         // totdat de gebruiker het zelf weer aanzet.
-        guard (error as? CLError)?.code == .denied, !CLLocationManager.locationServicesEnabled() else { return }
-        Task { @MainActor in
-            self.currentIssue = .locationServicesDisabled
-        }
-    }
-}
-
-private extension MotionActivityGate.ActivitySample.Confidence {
-    init(_ confidence: CMMotionActivityConfidence) {
-        switch confidence {
-        case .low: self = .low
-        case .medium: self = .medium
-        case .high: self = .high
-        @unknown default: self = .low
-        }
+        guard (error as? CLError)?.code == .denied, !locationProvider.locationServicesEnabled else { return }
+        currentIssue = .locationServicesDisabled
     }
 }

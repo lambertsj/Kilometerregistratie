@@ -12,3 +12,5 @@ DerivedData/
 
 # App Store Connect CLI
 .asc/
+
+.superpowers/
