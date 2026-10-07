@@ -116,4 +116,18 @@ final class LocationTrackingServiceTests: XCTestCase {
         let points = try RoutePolyline.decode(try XCTUnwrap(trip.routeData))
         XCTAssertEqual(points.count, 1, "tweede sample komt binnen de interval en wacht op de volgende schrijfbeurt")
     }
+
+    func testWatchdogCheckKeepsManualRecordingDuringLongStop() async throws {
+        let context = try makeContext()
+        let service = LocationTrackingService()
+        service.configure(context: context)
+
+        let trip = Trip(startDate: .now)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .manual)
+
+        await service.checkWatchdog(now: .now.addingTimeInterval(3600))
+
+        XCTAssertEqual(service.recordingSource, .manual, "handmatige opname blijft doorlopen tot STOP")
+    }
 }

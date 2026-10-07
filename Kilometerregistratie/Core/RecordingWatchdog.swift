@@ -25,8 +25,12 @@ struct RecordingWatchdog: Equatable {
     }
 
     /// True als de opname nu geforceerd afgesloten moet worden.
-    func shouldForceStop(recordingStartedAt: Date, lastSampleAt: Date, now: Date) -> Bool {
-        if now.timeIntervalSince(lastSampleAt) >= stopAfterStationaryInterval + Self.gpsSilenceGrace {
+    /// Bij een handmatige opname (`ignoreGPSSilence`) eindigt de rit door STOP,
+    /// niet door stilte: een lange stop bij een klant of in de file mag de
+    /// routeopname niet afbreken. Alleen de maximale ritduur geldt dan nog.
+    func shouldForceStop(recordingStartedAt: Date, lastSampleAt: Date, now: Date, ignoreGPSSilence: Bool = false) -> Bool {
+        if !ignoreGPSSilence,
+           now.timeIntervalSince(lastSampleAt) >= stopAfterStationaryInterval + Self.gpsSilenceGrace {
             return true
         }
         if now.timeIntervalSince(recordingStartedAt) >= maxTripDuration {

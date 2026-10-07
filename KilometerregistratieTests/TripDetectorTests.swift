@@ -69,4 +69,32 @@ final class TripDetectorTests: XCTestCase {
         XCTAssertEqual(detector.process(sample(speed: 15, secondsIn: 170)), .none)
         XCTAssertEqual(detector.state, .moving)
     }
+
+    private func sample(speed: Double, secondsIn: TimeInterval, latitude: Double) -> TripDetector.Sample {
+        TripDetector.Sample(latitude: latitude, longitude: 5.0, speed: speed, timestamp: start.addingTimeInterval(secondsIn))
+    }
+
+    /// CLLocation.speed is -1 als iOS de snelheid niet kent (zwakke fix, tunnel
+    /// uitgang). Tijdens een rit mag dat niet als stilstand tellen: de afgelegde
+    /// afstand tussen de samples laat zien dat we nog rijden.
+    func testUnknownSpeedWhileMovingFallsBackToDistanceBetweenSamples() {
+        var detector = TripDetector(stopAfterStationaryInterval: 180)
+        _ = detector.process(sample(speed: 10, secondsIn: 0, latitude: 52.0))
+        // ~11 m/s noordwaarts (0.001 graad ≈ 111 m per 10 s), 400 s lang zonder snelheid.
+        for i in 1...40 {
+            let event = detector.process(sample(speed: -1, secondsIn: Double(i) * 10, latitude: 52.0 + Double(i) * 0.001))
+            XCTAssertEqual(event, .none, "sample \(i)")
+        }
+        XCTAssertEqual(detector.state, .moving)
+    }
+
+    func testUnknownSpeedWithoutMovementStillEndsTrip() {
+        var detector = TripDetector(stopAfterStationaryInterval: 180)
+        _ = detector.process(sample(speed: 10, secondsIn: 0, latitude: 52.0))
+        _ = detector.process(sample(speed: -1, secondsIn: 100, latitude: 52.0))
+        XCTAssertEqual(
+            detector.process(sample(speed: -1, secondsIn: 200, latitude: 52.0)),
+            .tripEnded(endDate: start)
+        )
+    }
 }

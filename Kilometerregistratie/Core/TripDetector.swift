@@ -48,7 +48,12 @@ struct TripDetector {
         self.stopAfterStationaryInterval = stopAfterStationaryInterval
     }
 
+    /// Vorig sample, om bij een onbekende snelheid (-1) de snelheid uit afstand
+    /// en tijd af te leiden.
+    private var previousSample: Sample?
+
     mutating func process(_ sample: Sample) -> Event {
+        defer { previousSample = sample }
         switch state {
         case .idle:
             if sample.speed >= startSpeedThreshold {
@@ -71,16 +76,32 @@ struct TripDetector {
                 lastMovementDate = nil
                 return .tripEnded(endDate: lastMovement)
             }
-            if sample.speed >= stationarySpeedThreshold {
+            if movingSpeed(of: sample) >= stationarySpeedThreshold {
                 lastMovementDate = sample.timestamp
             }
             return .none
         }
     }
 
+    /// Snelheid van het sample; bij een onbekende snelheid (negatief, bv. een
+    /// zwakke fix) de gemiddelde snelheid sinds het vorige sample. Alleen
+    /// tijdens een rit gebruikt: voor een start is dit te ruisgevoelig.
+    private func movingSpeed(of sample: Sample) -> Double {
+        if sample.speed >= 0 { return sample.speed }
+        guard let previous = previousSample else { return sample.speed }
+        let elapsed = sample.timestamp.timeIntervalSince(previous.timestamp)
+        guard elapsed > 0 else { return sample.speed }
+        let meters = GeoDistance.meters(
+            fromLatitude: previous.latitude, longitude: previous.longitude,
+            toLatitude: sample.latitude, longitude: sample.longitude
+        )
+        return meters / elapsed
+    }
+
     /// Forceert terug naar idle (bv. wanneer tracking uitgezet wordt).
     mutating func reset() {
         state = .idle
         lastMovementDate = nil
+        previousSample = nil
     }
 }

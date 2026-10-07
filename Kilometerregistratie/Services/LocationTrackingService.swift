@@ -410,7 +410,12 @@ final class LocationTrackingService: NSObject {
               let startedAt = recordingStartedAt,
               let lastSample = lastSampleAt else { return }
         let watchdog = RecordingWatchdog(stopAfterStationaryInterval: detector.stopAfterStationaryInterval)
-        guard watchdog.shouldForceStop(recordingStartedAt: startedAt, lastSampleAt: lastSample, now: now) else { return }
+        guard watchdog.shouldForceStop(
+            recordingStartedAt: startedAt,
+            lastSampleAt: lastSample,
+            now: now,
+            ignoreGPSSilence: recordingSource == .manual
+        ) else { return }
         detector.reset()
         await stopRecording(endDate: lastSample)
     }
