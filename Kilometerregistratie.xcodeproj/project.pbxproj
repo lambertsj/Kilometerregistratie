@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B7C1D2E3F4A5968778695A4B /* LocationTrackingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D2E3F4A5B6079889706B5C /* LocationTrackingServiceTests.swift */; };
 		00C58F6AF4C98E878BA63D7B /* NetherlandsRuleSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B92F98FE104093905BD3466 /* NetherlandsRuleSet.swift */; };
 		0ED19135A8A61693901EF4DB /* RegionRates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F760F16057D561FB4F1C98 /* RegionRates.swift */; };
 		102FECAD7AC709170D2C7FA2 /* AppMigrationPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = E130A5CBFB82879D74B2F29F /* AppMigrationPlan.swift */; };
@@ -104,6 +105,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C8D2E3F4A5B6079889706B5C /* LocationTrackingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTrackingServiceTests.swift; sourceTree = "<group>"; };
 		026A32A89B6E2470032D35C7 /* ReportDocumentPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportDocumentPlan.swift; sourceTree = "<group>"; };
 		033D084863E92D0CBE985001 /* LocationTrackingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTrackingService.swift; sourceTree = "<group>"; };
 		05049A532E28EA1DCD018179 /* MotionActivityGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionActivityGate.swift; sourceTree = "<group>"; };
@@ -278,6 +280,7 @@
 				452E5DDA0E1F78F8E78C4BF2 /* TripDetectorTests.swift */,
 				F0203F05FE2A25DEDA7C239D /* TripMergeTests.swift */,
 				E8D2CF0A51B047B63851ED6D /* TripRecorderTests.swift */,
+				C8D2E3F4A5B6079889706B5C /* LocationTrackingServiceTests.swift */,
 			);
 			path = KilometerregistratieTests;
 			sourceTree = "<group>";
@@ -566,6 +569,7 @@
 				BB1FA729417C08A69F59F4FA /* TripDetectorTests.swift in Sources */,
 				439986354CC2D8C6FC83F996 /* TripMergeTests.swift in Sources */,
 				A1F70DF53B6BC4279D9133A0 /* TripRecorderTests.swift in Sources */,
+				B7C1D2E3F4A5968778695A4B /* LocationTrackingServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

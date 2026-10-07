@@ -237,6 +237,10 @@ final class LocationTrackingService: NSObject {
         let writer = TripWriteService(context: context)
 
         _ = try? writer.update(trip) { trip in
+            // Automatische ritten sluit alleen de service zelf af. Een
+            // handmatige rit krijgt zijn einddatum van `TripRecorder.stop`,
+            // zodat dat niet als wijziging achteraf geldt.
+            if wasAutomatic { trip.endDate = endDate }
             if points.count >= 2 {
                 trip.routeData = try? RoutePolyline.encode(points)
                 trip.distanceKm = GeoDistance.routeDistanceKm(points)
@@ -334,7 +338,7 @@ final class LocationTrackingService: NSObject {
         }
     }
 
-    private func startRecording(trip: Trip, source: RecordingSource) {
+    func startRecording(trip: Trip, source: RecordingSource) {
         recordingTrip = trip
         recordingSource = source
         routePoints = []
@@ -465,8 +469,7 @@ final class LocationTrackingService: NSObject {
                 }
 
             case .tripEnded(let endDate):
-                if recordingSource == .automatic, let trip = recordingTrip, let context = modelContext {
-                    _ = try? TripWriteService(context: context).update(trip) { $0.endDate = endDate }
+                if recordingSource == .automatic, recordingTrip != nil {
                     Task { await stopRecording(endDate: endDate) }
                 }
             }
