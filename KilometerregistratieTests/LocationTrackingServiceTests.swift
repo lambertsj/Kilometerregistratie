@@ -30,4 +30,40 @@ final class LocationTrackingServiceTests: XCTestCase {
         XCTAssertEqual(trip.endDate, end)
         XCTAssertNil(try TripRepository(context: context).activeTrip())
     }
+
+    /// Een opgeschorte app voert de watchdog-timer niet uit. Bij terugkeer
+    /// naar de voorgrond moet de controle direct kunnen draaien en een rit
+    /// zonder samples afsluiten op het laatste sample, niet op `now`.
+    func testWatchdogCheckClosesTripAfterGPSSilence() async throws {
+        let context = try makeContext()
+        let service = LocationTrackingService()
+        service.configure(context: context)
+
+        let trip = Trip(startDate: .now, isAutomaticallyRecorded: true)
+        try TripWriteService(context: context).create(trip)
+        let before = Date.now
+        service.startRecording(trip: trip, source: .automatic)
+        let after = Date.now
+
+        await service.checkWatchdog(now: after.addingTimeInterval(3600))
+
+        let end = try XCTUnwrap(trip.endDate)
+        XCTAssertGreaterThanOrEqual(end, before)
+        XCTAssertLessThanOrEqual(end, after)
+        XCTAssertNil(try TripRepository(context: context).activeTrip())
+    }
+
+    func testWatchdogCheckLeavesRecentTripAlone() async throws {
+        let context = try makeContext()
+        let service = LocationTrackingService()
+        service.configure(context: context)
+
+        let trip = Trip(startDate: .now, isAutomaticallyRecorded: true)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .automatic)
+
+        await service.checkWatchdog(now: .now.addingTimeInterval(30))
+
+        XCTAssertNil(trip.endDate)
+    }
 }

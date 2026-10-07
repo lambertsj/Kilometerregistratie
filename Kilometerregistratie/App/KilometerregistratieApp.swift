@@ -22,6 +22,7 @@ struct KilometerregistratieApp: App {
     }()
 
     @State private var locationService = LocationTrackingService()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -33,6 +34,12 @@ struct KilometerregistratieApp: App {
                     // Sluit of hervat een rit die nog "actief" stond toen de
                     // app de vorige keer werd afgesloten of gekilld.
                     await locationService.resumeIfNeeded(context: container.mainContext)
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    // iOS kan de app tijdens een rit hebben opgeschort, waarbij
+                    // de watchdog-timer stilstaat. Controleer direct bij terugkeer.
+                    guard phase == .active else { return }
+                    Task { await locationService.checkWatchdog() }
                 }
         }
         .modelContainer(container)

@@ -391,12 +391,15 @@ final class LocationTrackingService: NSObject {
         }
     }
 
-    private func checkWatchdog() async {
+    /// Draait ook zodra de app weer actief wordt: een opgeschorte app voert
+    /// de timer hierboven niet uit, dus zonder deze aanroep blijft een rit
+    /// open staan totdat de timer toevallig weer loopt.
+    func checkWatchdog(now: Date = .now) async {
         guard recordingTrip != nil,
               let startedAt = recordingStartedAt,
               let lastSample = lastSampleAt else { return }
         let watchdog = RecordingWatchdog(stopAfterStationaryInterval: detector.stopAfterStationaryInterval)
-        guard watchdog.shouldForceStop(recordingStartedAt: startedAt, lastSampleAt: lastSample, now: .now) else { return }
+        guard watchdog.shouldForceStop(recordingStartedAt: startedAt, lastSampleAt: lastSample, now: now) else { return }
         detector.reset()
         await stopRecording(endDate: lastSample)
     }
