@@ -82,7 +82,7 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Label(locationPermissionHint, systemImage: "location.slash")
                                     .font(.footnote)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Theme.warning)
                                 if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
                                     Button("Open Instellingen") { openSettings() }
                                         .font(.footnote)
@@ -153,7 +153,8 @@ struct SettingsView: View {
                 }
 #endif
             }
-            .navigationTitle("Instellingen")
+                .themedList()
+            .screenTitle("Instellingen")
         }
     }
 
@@ -168,9 +169,9 @@ struct SettingsView: View {
                     trySave()
                 }
                 .font(.caption.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 32)
-                .background(isOn ? Color.accentColor : Color(.tertiarySystemFill), in: Capsule())
-                .foregroundStyle(isOn ? .white : .primary)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(isOn ? Theme.accent : Color(.tertiarySystemFill), in: Capsule())
+                .foregroundStyle(isOn ? Theme.onAccent : Color.primary)
                 .buttonStyle(.plain)
                 .accessibilityLabel(String(format: String(localized: "Werkdag %@", comment: "Toegankelijkheidslabel bij een weekdagknop; %@ is de afkorting van de dag"), option.label))
                 .accessibilityAddTraits(isOn ? .isSelected : [])

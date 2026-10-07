@@ -82,6 +82,7 @@ struct LogValidationView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                    .themedList()
             }
         }
         .navigationTitle(String(format: String(localized: "Controle %lld", comment: "Titel van het validatiescherm; %lld is het belastingjaar"), taxYear))

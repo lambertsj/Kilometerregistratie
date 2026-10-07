@@ -27,6 +27,7 @@ struct KilometerregistratieApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .tint(Theme.accent)
                 .environment(locationService)
                 .task {
                     locationService.configure(context: container.mainContext)

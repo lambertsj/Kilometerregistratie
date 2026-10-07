@@ -4,9 +4,9 @@ extension TripCategory {
     /// Vaste categoriekleur, overal in de app hetzelfde (lijst, badges, diagram).
     var color: Color {
         switch self {
-        case .business: .blue
-        case .commute: .teal
-        case .personal: .purple
+        case .business: Theme.business
+        case .commute: Theme.commute
+        case .personal: Theme.personal
         }
     }
 
@@ -24,11 +24,17 @@ struct CategoryBadge: View {
     let category: TripCategory
 
     var body: some View {
-        Label(category.displayName, systemImage: category.iconName)
+        HStack(spacing: 4) {
+            Image(systemName: category.iconName)
+                .accessibilityHidden(true)
+            Text(category.displayName)
+        }
             .font(.caption2.weight(.semibold))
             .foregroundStyle(category.color)
             .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(category.color.opacity(0.15), in: Capsule())
+            .padding(.vertical, 4)
+            .background(category.color.opacity(0.14), in: Capsule())
+            .lineLimit(1)
+            .fixedSize()
     }
 }
