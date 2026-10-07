@@ -46,4 +46,27 @@ final class TripDetectorTests: XCTestCase {
         XCTAssertEqual(detector.state, .idle)
         XCTAssertEqual(detector.process(sample(speed: 10, secondsIn: 10)), .tripStarted)
     }
+
+    /// iOS pauzeert de GPS bij stilstand; het eerste sample daarna kan al weer
+    /// rijsnelheid hebben. Het gat mag dan niet als rijtijd meetellen: de rit
+    /// eindigt op het laatste beweegmoment.
+    func testGapLongerThanThresholdEndsTripEvenWhenNextSampleIsFast() {
+        var detector = TripDetector(stopAfterStationaryInterval: 180)
+        _ = detector.process(sample(speed: 10, secondsIn: 0))
+        _ = detector.process(sample(speed: 10, secondsIn: 100))
+        XCTAssertEqual(
+            detector.process(sample(speed: 15, secondsIn: 1500)),
+            .tripEnded(endDate: start.addingTimeInterval(100))
+        )
+        XCTAssertEqual(detector.state, .idle)
+        // Het volgende snelle sample start gewoon een nieuwe rit.
+        XCTAssertEqual(detector.process(sample(speed: 15, secondsIn: 1510)), .tripStarted)
+    }
+
+    func testGapShorterThanThresholdKeepsTripGoing() {
+        var detector = TripDetector(stopAfterStationaryInterval: 180)
+        _ = detector.process(sample(speed: 10, secondsIn: 0))
+        XCTAssertEqual(detector.process(sample(speed: 15, secondsIn: 170)), .none)
+        XCTAssertEqual(detector.state, .moving)
+    }
 }

@@ -423,19 +423,34 @@ final class LocationTrackingService: NSObject {
     fileprivate func handle(locations: [CLLocation]) {
         currentIssue = nil
         for location in locations {
-            if recordingTrip != nil {
+            let event: TripDetector.Event
+            if detectionEnabled {
+                event = detector.process(TripDetector.Sample(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    speed: location.speed,
+                    timestamp: location.timestamp
+                ))
+            } else {
+                event = .none
+            }
+
+            // Een sample dat een automatische rit beëindigt (bv. het eerste na
+            // een lang gat) hoort niet meer bij die rit: anders telt de afstand
+            // over het gat mee.
+            let endsAutomaticTrip: Bool
+            if case .tripEnded = event, recordingSource == .automatic {
+                endsAutomaticTrip = true
+            } else {
+                endsAutomaticTrip = false
+            }
+            if recordingTrip != nil, !endsAutomaticTrip {
                 lastSampleAt = location.timestamp
                 appendRoutePoint(from: location)
             }
             guard detectionEnabled else { continue }
 
-            let sample = TripDetector.Sample(
-                latitude: location.coordinate.latitude,
-                longitude: location.coordinate.longitude,
-                speed: location.speed,
-                timestamp: location.timestamp
-            )
-            switch detector.process(sample) {
+            switch event {
             case .none:
                 // Wakker geworden door significant change zonder rijsnelheid:
                 // even continue updates aanzetten om snelheid te peilen zou
