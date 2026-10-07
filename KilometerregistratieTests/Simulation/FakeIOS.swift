@@ -17,6 +17,9 @@ struct IOSParameters {
     /// A11: bij het wakker worden vuren verlopen timers vóór het eerste sample.
     /// Onbekend; uit = het sample komt eerst en alleen de detector kan het gat zien.
     var timersResumeBeforeFirstSample = true
+    /// A12: iOS levert soms meerdere locaties in één callback af (bv. na een
+    /// wake-up). Aantal samples per levering; 1 = telkens één.
+    var batchSize = 1
 }
 
 enum AppState: Equatable {
@@ -63,6 +66,7 @@ final class FakeIOS {
 
     /// A3: een opgeschorte app voert niets meer uit, ook geen timers.
     func suspend() {
+        flush()
         guard appState == .background || appState == .foreground else { return }
         appState = .suspended
         clock.timersEnabled = false
@@ -77,6 +81,7 @@ final class FakeIOS {
 
     /// A6: het proces is weg; geheugen verloren, database blijft.
     func terminate() {
+        flush()
         appState = .terminated
         clock.timersEnabled = false
         clock.removeAllTimers()
@@ -149,6 +154,16 @@ final class FakeIOS {
         }
     }
 
+    private var pendingBatch: [CLLocation] = []
+
+    /// Levert wat er nog in een onvolledige batch zit alsnog af.
+    func flush() {
+        guard !pendingBatch.isEmpty else { return }
+        let batch = pendingBatch
+        pendingBatch = []
+        location.deliver(batch)
+    }
+
     private func deliver(_ fix: Fix) {
         let clLocation = CLLocation(
             coordinate: CLLocationCoordinate2D(latitude: fix.latitude, longitude: fix.longitude),
@@ -159,7 +174,8 @@ final class FakeIOS {
             speed: fix.speed,
             timestamp: fix.timestamp
         )
-        location.deliver([clLocation])
+        pendingBatch.append(clLocation)
+        if pendingBatch.count >= params.batchSize { flush() }
     }
 
     private func significantDue(_ position: (lat: Double, lon: Double)) -> Bool {

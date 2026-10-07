@@ -32,6 +32,19 @@ extension ScenarioRunner {
             )
         }
 
+        // 7. Een rit met een opgeslagen route heeft een afstand die daarbij past
+        //    (een afgesloten rit staat niet als 0 km), en een automatische rit duurt langer dan nul.
+        for trip in closed {
+            if let data = trip.routeData, let points = try? RoutePolyline.decode(data), points.count >= 2 {
+                let routeKm = GeoDistance.routeDistanceKm(points)
+                XCTAssertEqual(trip.distanceKm, routeKm, accuracy: routeKm * 0.01 + 0.05,
+                               "afstand wijkt af van de opgeslagen route", file: file, line: line)
+            }
+            if trip.isAutomaticallyRecorded, let end = trip.endDate {
+                XCTAssertGreaterThan(end, trip.startDate, "automatische rit met duur nul", file: file, line: line)
+            }
+        }
+
         // 5. Nooit meer afstand geregistreerd dan er totaal is verplaatst. Dat een gat
         //    bij automatische detectie niet meetelt, staat in de gat-scenario's zelf.
         let registeredMeters = all.reduce(0) { $0 + $1.distanceKm * 1000 }

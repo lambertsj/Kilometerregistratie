@@ -32,8 +32,10 @@ final class ScenarioFuzzTests: XCTestCase {
         ios.autoPauseAfter = Double(Int.random(in: 300...1200, using: &rng))   // A2: 5 tot 20 minuten
         ios.wakesWhenUpdatesResume = Bool.random(using: &rng)                  // A4 in beide richtingen
         ios.timersResumeBeforeFirstSample = Bool.random(using: &rng)           // A11 in beide richtingen
+        ios.revokingPermissionTerminatesApp = Bool.random(using: &rng)        // A9 in beide richtingen
+        ios.batchSize = Int.random(in: 1...4, using: &rng)                     // A12
         let stopAfter = Int.random(in: 1...6, using: &rng)
-        log.append("mode=\(mode) stopNa=\(stopAfter)min pauze=\(Int(ios.autoPauseAfter))s wekt=\(ios.wakesWhenUpdatesResume) timersEerst=\(ios.timersResumeBeforeFirstSample)")
+        log.append("mode=\(mode) stopNa=\(stopAfter)min pauze=\(Int(ios.autoPauseAfter))s wekt=\(ios.wakesWhenUpdatesResume) timersEerst=\(ios.timersResumeBeforeFirstSample) intrekkenBeëindigt=\(ios.revokingPermissionTerminatesApp) batch=\(ios.batchSize)")
         let s = try ScenarioRunner(mode: mode, stopAfterMinutes: stopAfter, ios: ios)
 
         for _ in 0..<Int.random(in: 4...14, using: &rng) {
@@ -106,4 +108,16 @@ final class ScenarioFuzzTests: XCTestCase {
 
     // Mislukte seeds komen hier als vaste regressietest, bv.:
     // func testSeed17() async throws { try await runScenario(seed: 17) }
+
+    /// Seed 10: een sample van vlak vóór de STOP-tik komt pas daarna binnen (batch)
+    /// en startte een automatische rit die overlapte met de handmatige rit.
+    func testSeed10() async throws { try await runScenario(seed: 10) }
+
+    /// Seed 39: een automatische rit met één enkel sample, gekild zonder toestemming,
+    /// werd op duur nul afgesloten in plaats van weggegooid.
+    func testSeed39() async throws { try await runScenario(seed: 39) }
+
+    /// Seed 508: toestemming ingetrokken na een hervatting; de rit eindigde op het
+    /// moment van intrekken in plaats van op het laatste teken van leven.
+    func testSeed508() async throws { try await runScenario(seed: 508) }
 }

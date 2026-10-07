@@ -44,7 +44,12 @@ final class ScenarioRunner {
     /// samenvalt is een keuze van de gebruiker en geen automatisch einde.
     private(set) var userStopDates: Set<Date> = []
 
-    init(mode: ScenarioMode, stopAfterMinutes: Int = 3, ios params: IOSParameters = IOSParameters()) throws {
+    init(
+        mode: ScenarioMode,
+        stopAfterMinutes: Int = 3,
+        region: TaxRegion = .netherlands,
+        ios params: IOSParameters = IOSParameters()
+    ) throws {
         self.mode = mode
         self.stopAfterMinutes = stopAfterMinutes
         let container = try ModelContainer(
@@ -64,6 +69,7 @@ final class ScenarioRunner {
         let settings = AppSettings.fetchOrCreate(in: context)
         settings.trackingMode = mode.trackingMode
         settings.autoStopThresholdMinutes = stopAfterMinutes
+        settings.taxRegion = region
         try context.save()
 
         service.configure(context: context)
@@ -143,6 +149,18 @@ final class ScenarioRunner {
         await settle()
     }
 
+    /// Toestemming is geweigerd vóór de rit (de gebruiker registreert zonder route).
+    func denyPermission() async {
+        location.changeAuthorization(to: .denied)
+        await settle()
+    }
+
+    /// Revisies van het type "gewijzigd" (audit trail, alleen met bewaarplicht).
+    var updatedRevisionCount: Int {
+        let all = (try? context.fetch(FetchDescriptor<TripRevision>())) ?? []
+        return all.filter { $0.changeKind == .updated }.count
+    }
+
     func revokePermission() async {
         location.changeAuthorization(to: .denied)
         await settle()
@@ -199,6 +217,8 @@ final class ScenarioRunner {
     }
 
     private func advance(by seconds: TimeInterval) async {
+        // Een onvolledige batch wacht niet eindeloos: tijd die verstrijkt levert hem af.
+        if seconds >= 10 { ios.flush() }
         await clock.advance(to: clock.now.addingTimeInterval(seconds))
         await settle()
     }

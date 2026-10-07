@@ -205,4 +205,60 @@ final class LocationTrackingServiceTests: XCTestCase {
         XCTAssertNotNil(trip.endDate)
         XCTAssertNil(service.recordingSource)
     }
+
+    // I1 (review): locaties komen soms in één batch binnen. Het eerste sample na een
+    // gat beëindigt de rit; de volgende samples in dezelfde batch horen bij een
+    // nieuwe rit en niet bij de oude.
+    func testBatchAfterGapEndsOldTripAndStartsNewOne() async throws {
+        let context = try makeContext()
+        let provider = FakeLocationProvider()
+        let clock = VirtualClock(start: Date(timeIntervalSince1970: 1_700_000_000))
+        let service = LocationTrackingService(
+            locationProvider: provider, motionProvider: FakeMotionProvider(),
+            time: clock, geocoder: FakeAddressResolver()
+        )
+        service.configure(context: context)
+        let settings = AppSettings.fetchOrCreate(in: context)
+        settings.trackingMode = .automatic
+        settings.autoStopThresholdMinutes = 3
+        service.applySettings(settings)
+
+        func fix(_ seconds: TimeInterval, _ meters: Double) -> CLLocation {
+            CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: 52.0 + meters / 111_320, longitude: 5.0),
+                altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, course: 0, speed: 14,
+                timestamp: clock.now.addingTimeInterval(seconds)
+            )
+        }
+        // Eerste rit start en loopt een tijd.
+        provider.deliver([fix(0, 0)])
+        provider.deliver([fix(2, 28)])
+        provider.deliver([fix(4, 56)])
+        // Na 25 minuten (gat) komt één batch met drie samples.
+        provider.deliver([fix(1500, 20_000), fix(1502, 20_028), fix(1504, 20_056)])
+        for _ in 0..<30 { await Task.yield() }
+
+        let trips = try TripRepository(context: context).trips().sorted { $0.startDate < $1.startDate }
+        XCTAssertEqual(trips.count, 2, "tweede rit wordt niet geblokkeerd")
+        XCTAssertLessThan(trips[0].distanceKm, 0.5, "de 20 km over het gat horen niet bij de eerste rit")
+        XCTAssertEqual(service.recordingSource, .automatic, "de tweede rit wordt opgenomen")
+    }
+
+    // I3 (review): of iOS gepauzeerde updates zelf hervat is niet bewezen (A4). Bij het
+    // actief worden van de app starten we de updates daarom opnieuw (idempotent).
+    func testAppDidBecomeActiveRestartsUpdatesWhileRecording() async throws {
+        let context = try makeContext()
+        let provider = FakeLocationProvider()
+        let service = LocationTrackingService(locationProvider: provider)
+        service.configure(context: context)
+
+        let trip = Trip(startDate: .now)
+        try TripWriteService(context: context).create(trip)
+        service.startRecording(trip: trip, source: .manual)
+        let before = provider.calls.filter { $0 == "startUpdating" }.count
+
+        await service.appDidBecomeActive()
+
+        XCTAssertEqual(provider.calls.filter { $0 == "startUpdating" }.count, before + 1)
+    }
 }

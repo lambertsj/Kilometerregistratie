@@ -264,4 +264,68 @@ final class ScenarioTests: XCTestCase {
         XCTAssertNotNil(s.trips.first?.endDate)
         try s.assertInvariants()
     }
+
+    // I2 (review): een rit die na een kill wordt afgesloten op het laatste teken van
+    // leven houdt zijn afstand, coördinaten en adressen; hij staat niet als 0 km.
+    func testFinalizedTripAfterLateRelaunchKeepsDistanceAndAddresses() async throws {
+        let s = try ScenarioRunner(mode: .automatic)
+        await s.drive(meters: 12_000)
+        s.appKill()
+        await s.wait(for: 90 * 60)
+        await s.appRelaunch()
+
+        let trip = try XCTUnwrap(s.trips.first)
+        XCTAssertGreaterThan(trip.distanceKm, 10, "afstand uit de opgeslagen route")
+        XCTAssertNotNil(trip.endLatitude)
+        XCTAssertNotNil(trip.endAddress)
+        try s.assertInvariants()
+    }
+
+    // I4 (review): na STOP van een handmatige rit in hybride modus moet de detector
+    // weer schoon beginnen; doorrijden start dan een automatische rit.
+    func testHybridDrivingOnAfterManualStopStartsAutomaticTrip() async throws {
+        let s = try ScenarioRunner(mode: .hybrid)
+        try await s.userTapsStart()
+        await s.drive(meters: 5_000)
+        try await s.userTapsStop()
+        await s.drive(meters: 6_000)            // privé verder gereden
+        await s.stand(for: 15 * 60)
+
+        XCTAssertEqual(s.trips.count, 2, "handmatige rit plus een automatische rit")
+        XCTAssertEqual(s.trips.filter(\.isAutomaticallyRecorded).count, 1)
+        s.assertNoOpenAutomaticTrip()
+        try s.assertInvariants()
+    }
+
+    // C1 (review): een handmatige rit zonder route (toestemming geweigerd) wordt na
+    // een kill niet op duur nul afgesloten; STOP blijft bereikbaar.
+    func testManualTripWithoutRouteStaysOpenAfterKill() async throws {
+        let s = try ScenarioRunner(mode: .manual)
+        await s.denyPermission()
+        try await s.userTapsStart()
+        await s.wait(for: 10 * 60)
+        s.appKill()
+        await s.wait(for: 5 * 60)
+        await s.appRelaunch()
+
+        let trip = try XCTUnwrap(s.trips.first)
+        XCTAssertNil(trip.endDate, "de gebruiker sluit zelf af met STOP")
+        try await s.userTapsStop()
+        let ended = try XCTUnwrap(s.trips.first?.endDate)
+        XCTAssertGreaterThan(ended.timeIntervalSince(trip.startDate), 10 * 60)
+        try s.assertInvariants()
+    }
+
+    // I6 (review): in een regio met bewaarplicht (Duitsland) geeft het afsluiten van
+    // een automatische rit geen revisies; adressen en categorie horen bij het vastleggen.
+    func testAutomaticTripInGermanyProducesNoUpdateRevisions() async throws {
+        let s = try ScenarioRunner(mode: .automatic, region: .germany)
+        await s.drive(meters: 8_000)
+        await s.stand(for: 15 * 60)
+
+        XCTAssertEqual(s.trips.count, 1)
+        XCTAssertNotNil(s.trips.first?.endAddress)
+        XCTAssertEqual(s.updatedRevisionCount, 0, "afsluiten is vastleggen, geen wijziging achteraf")
+        try s.assertInvariants()
+    }
 }
