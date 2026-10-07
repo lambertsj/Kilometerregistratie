@@ -85,6 +85,23 @@ extension View {
             .background(Theme.canvas.ignoresSafeArea())
     }
 
+    /// Compacte, merkgebonden titelbalk voor de hoofdtabs: titel gecentreerd in
+    /// afgeronde letter, geen grote titel. Houdt de bovenkant op elk scherm
+    /// even hoog en geeft de inhoud meer ruimte. De gewone `navigationTitle`
+    /// blijft gezet voor VoiceOver en de terug-knop van onderliggende schermen.
+    func screenTitle(_ title: LocalizedStringKey) -> some View {
+        self
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(title)
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .accessibilityAddTraits(.isHeader)
+                }
+            }
+    }
+
     /// Begrenst de breedte en centreert (landscape, grote toestellen).
     func readableWidth() -> some View {
         self

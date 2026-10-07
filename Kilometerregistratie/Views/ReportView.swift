@@ -126,7 +126,7 @@ struct ReportView: View {
                 }
             }
                 .themedList()
-            .navigationTitle("Rapport")
+            .screenTitle("Rapport")
             .sheet(item: $exportedFile) { file in
                 ShareSheet(url: file.url)
             }

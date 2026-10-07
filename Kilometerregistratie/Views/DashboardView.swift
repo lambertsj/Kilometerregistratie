@@ -73,7 +73,7 @@ struct DashboardView: View {
                 .padding()
                 .readableWidth()
             }
-            .navigationTitle("Dashboard")
+            .screenTitle("Dashboard")
             .background(Theme.canvas.ignoresSafeArea())
         }
     }

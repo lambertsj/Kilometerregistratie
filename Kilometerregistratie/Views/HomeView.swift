@@ -51,7 +51,7 @@ struct HomeView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .background(Theme.canvas.ignoresSafeArea())
-            .navigationTitle("Kilometerregistratie")
+            .screenTitle("Kilometerregistratie")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {

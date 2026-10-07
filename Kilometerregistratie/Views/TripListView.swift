@@ -67,8 +67,7 @@ struct TripListView: View {
                     }
                 }
             }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
+            .screenTitle("Ritten")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     filterMenu
@@ -76,10 +75,6 @@ struct TripListView: View {
             }
             .safeAreaInset(edge: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Ritten")
-                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
                     Picker("Periode", selection: $periodFilter) {
                         ForEach(PeriodFilter.allCases) { period in
                             Text(period.displayName).tag(period)
@@ -90,7 +85,7 @@ struct TripListView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
                 .padding(.bottom, 4)
-                .background(.bar)
+                .background(Theme.canvas)
             }
             .alert("Er ging iets mis", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") { errorMessage = nil }

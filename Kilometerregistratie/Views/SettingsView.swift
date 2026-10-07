@@ -154,7 +154,7 @@ struct SettingsView: View {
 #endif
             }
                 .themedList()
-            .navigationTitle("Instellingen")
+            .screenTitle("Instellingen")
         }
     }
 
